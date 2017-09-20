@@ -34,24 +34,28 @@ function createInput(ALBName){
   let metricInputs = [];
 
   metrics.metricNames.forEach(function(element){
-    metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(template.template, element, ALBName),metricsCallback));
+    metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(template.template, element, ALBName)).promise());
   });
 
   return metricInputs;
 }
 
+function isALBElement(listElement){
+  return listElement.includes(config.collectorPrefix);
+}
+
 function main(){
   APICaller.getAWSLoadBalancers()
-    .then((ALBList) => {
-      ALBList.forEach((element) => {
-        console.log(element);
-        Promise.all(createInput(element)).then(function(values){
-          //     //Transform 
-          //     //Send to backend
-        });
+    .then((analyticsList) => {
+      var ALBList = analyticsList.filter(isALBElement);
+      ALBList.forEach( element => {
+        var cleanALB = element.trim().replace(config.collectorPrefix, '');
+        Promise.all(createInput(cleanALB))
+          .then(results => { 
+            APICaller.sendResultsToMirrorgate(results, cleanALB);
+          }).catch(error => console.log(error));
       });
     }).catch((error) => {
-      console.log("error");
       console.log(error);
     });
 }
