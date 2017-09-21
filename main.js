@@ -1,8 +1,8 @@
 
-const config = require('./config.js');
-const metrics = require('./metrics/metrics.js');
-const template = require('./metrics/metricsRequestTemplate.js');
-const APICaller = require('./API/APICaller.js');
+const config = require('./src/config.js');
+const metrics = require('./src/metrics/metrics.js');
+const template = require('./src/metrics/metricsRequestTemplate.js');
+const APICaller = require('./src/API/APICaller.js');
 
 var AWS = require('aws-sdk');
 
@@ -18,16 +18,15 @@ function metricsCallback(err, data){
   }    
 }
 
-function addDimensions(AWSRequest, metricName, loadBalancer){
-  delete AWSRequest.Dimensions;
-  delete AWSRequest.MetricName;
+function addDimensions(template, metricName, loadBalancer){
+  var AWSBalancer = Object.assign({}, template);
 
-  AWSRequest.Dimensions =  [{
+  AWSBalancer.Dimensions =  [{
       "Name": "LoadBalancer",
       "Value": loadBalancer}];
 
-  AWSRequest.MetricName = metricName;
-  return AWSRequest;
+  AWSBalancer.MetricName = metricName;
+  return AWSBalancer;
 }
 
 function createInput(ALBName){
@@ -44,7 +43,7 @@ function isALBElement(listElement){
   return listElement.includes(config.collectorPrefix);
 }
 
-function main(){
+function invoke(){
   APICaller.getAWSLoadBalancers()
     .then((analyticsList) => {
       var ALBList = analyticsList.filter(isALBElement);
@@ -52,7 +51,13 @@ function main(){
         var cleanALB = element.trim().replace(config.collectorPrefix, '');
         Promise.all(createInput(cleanALB))
           .then(results => { 
-            APICaller.sendResultsToMirrorgate(results, cleanALB);
+            APICaller.sendResultsToMirrorgate(results, cleanALB).then(result => {
+              console.log("Elements sent to Mirrorgate");
+              console.log(result);
+            }).catch(error => {
+              console.log("POST to Mirrorgate failed!");
+              console.log(error);
+            });
           }).catch(error => console.log(error));
       });
     }).catch((error) => {
@@ -60,4 +65,4 @@ function main(){
     });
 }
 
-main();
+exports.invoke = invoke;
