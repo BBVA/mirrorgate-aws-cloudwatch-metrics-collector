@@ -1,9 +1,9 @@
 
-const CloudwatchInvoker = require('./main.js');
+const CloudwatchInvoker = require('./invoker.js');
 
 exports.handler = (event, context) => {
   
     context.callbackWaitsForEmptyEventLoop = false;
 
-    CloudwatchInvoker.invoke();
+    CloudwatchInvoker.cloudWatchInvoker();
 };
