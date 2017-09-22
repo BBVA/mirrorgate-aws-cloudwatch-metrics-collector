@@ -11,24 +11,18 @@ AWS.config.update({region:'eu-west-1'});
 var sts = new AWS.STS();
 
 function assumeAWSRole(){
+
   var params = {
     DurationSeconds: 3600, 
     RoleArn: "arn:aws:iam::850951215438:role/test_delegated_cloudwatch_metrics_role", 
-    RoleSessionName: "Bob"
-   };
+    RoleSessionName: "MirrorGate"
+  };
    
-   return sts.assumeRole(params, function(err, data) {
-     if (err) console.log(err, err.stack); // an error occurred
-     else{
-      console.log(data);
-      AWS.config.update({accessKeyId:data.Credentials.AccessKeyId, secretAccessKey:data.Credentials.SecretAccessKey,sessionToken:data.Credentials.SessionToken});
-     }                // successful response
-   }).promise();
-  
-  
+   return sts.assumeRole(params).promise();
+
 }
 
-var cloudWatch = new AWS.CloudWatch();
+var cloudWatch;
 
 function metricsCallback(err, data){
   if (err) {
@@ -67,27 +61,41 @@ function isALBElement(listElement){
 }
 
 function cloudWatchInvoker(){
-  assumeAWSRole().then(element =>
-    
-    APICaller.getAWSLoadBalancers().then((analyticsList) => {
-    var ALBList = analyticsList.filter(isALBElement);
-    ALBList.forEach( element => {
-      var cleanALB = element.trim().replace(config.collectorPrefix, '');
-      Promise.all(createInput(cleanALB))
-        .then(results => { 
-          APICaller.sendResultsToMirrorgate(results, cleanALB).then(result => {
-            console.log("Elements sent to Mirrorgate");
-            console.log(result);
-          }).catch(error => {
-            console.log("POST to Mirrorgate failed!");
-            console.log(error);
-          });
-        }).catch(error => console.log(error));
+  assumeAWSRole().then((element) => {
+
+    cloudWatch = new AWS.CloudWatch({
+      credentials: {
+        accessKeyId: element.Credentials.AccessKeyId,
+        secretAccessKey: element.Credentials.SecretAccessKey,
+        sessionToken: element.Credentials.SessionToken,
+      },
+    });
+
+    return APICaller.getAWSLoadBalancers().then((analyticsList) => {
+        var ALBList = analyticsList.filter(isALBElement);
+        ALBList.forEach( element => {
+          var cleanALB = element.trim().replace(config.collectorPrefix, '');
+
+          Promise.all(createInput(cleanALB))
+            .then(results => {
+              APICaller.sendResultsToMirrorgate(results, cleanALB).then(result => {
+                console.log("Elements sent to Mirrorgate");
+                console.log(result);
+              }).catch(error => {
+                console.log("POST to Mirrorgate failed!");
+                console.log(error);
+              });
+            }).catch(error => console.log(error));
+        });
     });
   }).catch((error) => {
     console.log(error);
-  }));
+  });
     
 }
 
-exports.cloudWatchInvoker = cloudWatchInvoker;
+module.exports = (() => {
+    return {
+        cloudWatchInvoker
+    }
+})();
