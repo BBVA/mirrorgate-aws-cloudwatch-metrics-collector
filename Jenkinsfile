@@ -19,8 +19,8 @@ node ('global') {
         }
         
         stage('Package Zip') {
-            sh """
-                docker-compose -p \${BUILD_TAG} run -u \$(id -u) package
+             sh """
+                \$(npm bin)/gulp package
             """
         }
 

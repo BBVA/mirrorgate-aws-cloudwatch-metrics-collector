@@ -51,7 +51,6 @@ function sendResultsToMirrorgate(results, viewId){
         }
       });
   });
-  
 }
 
 function _createResponse(responses, viewId){
@@ -102,7 +101,7 @@ function _createResponse(responses, viewId){
   return metrics;
 }
 
-exports = {
+module.exports = {
   getAWSLoadBalancers: getAWSLoadBalancers,
-  sendRresultsToMirrorGate: sendResultsToMirrorGate
+  sendRresultsToMirrorGate: sendResultsToMirrorgate,
 };

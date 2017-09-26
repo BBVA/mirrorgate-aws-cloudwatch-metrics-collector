@@ -2,13 +2,16 @@
   "name": "mirrorgate-aws-cloudwatch-metrics-collector",
   "version": "0.0.1",
   "description": "",
+  "main": "lambda.js",
   "scripts": {
+    "start": "node main.js",
+    "package": "./node_modules/gulp/bin/gulp.js package",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Rodrigo Quintana <rodrigo.quintana.contractor@bbva.com>",
   "license": "",
-  "devDependencies": {
-    "gulp": "^3.9.1",
-    "gulp-zip": "^4.0.0"
+  "dependencies": {
+    "aws-sdk": "^2.12.0",
+    "request": "^2.82.0"
   }
 }
