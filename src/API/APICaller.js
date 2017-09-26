@@ -102,5 +102,7 @@ function _createResponse(responses, viewId){
   return metrics;
 }
 
-exports.getAWSLoadBalancers = getAWSLoadBalancers;
-exports.sendResultsToMirrorgate = sendResultsToMirrorgate;
+exports = {
+  getAWSLoadBalancers: getAWSLoadBalancers,
+  sendRresultsToMirrorGate: sendResultsToMirrorGate
+};

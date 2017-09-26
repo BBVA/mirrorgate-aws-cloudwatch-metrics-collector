@@ -70,8 +70,8 @@ function isALBElement(listElement){
 
 function cloudWatchInvoker(){
   return APICaller.getAWSLoadBalancers().then((analyticsList) => {
-    var ALBList = analyticsList.filter(isALBElement);
-    ALBList.forEach( element => {
+    var listOfALBs = analyticsList.filter(isALBElement);
+    listOfALBs.forEach( element => {
       var cleanALB = element.trim().replace(config.collectorPrefix, '');
       //Get account id and ALB name
       var splitLocation = cleanALB.indexOf("/");

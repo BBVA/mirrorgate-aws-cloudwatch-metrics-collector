@@ -12,10 +12,10 @@ node ('global') {
 
         stage('Build') {
             sh """
-                #Commented until stop using git for dependencies
-                #docker-compose -p \${BUILD_TAG} run -u \$(id -u) install
                 npm install
-            """
+                cd collector
+                npm install --production
+            """       
         }
         
         stage('Package Zip') {
