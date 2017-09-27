@@ -10,5 +10,8 @@
   "devDependencies": {
     "gulp": "^3.9.1",
     "gulp-zip": "^4.0.0"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.123.0"
   }
 }
