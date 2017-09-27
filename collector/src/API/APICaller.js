@@ -17,34 +17,11 @@
 const request = require('request');
 const config = require('../config.js');
 
-function getAWSLoadBalancers(){
-  return new Promise((resolve, reject)=>{
-    request.get(config.mirrorgateGetAnalyticViewsEndpoint,(err, res, body) => {
-      if (err) {
-        return reject(err);
-      }
-      body = JSON.parse(body);
-      if(body.status >= 400) {
-        return reject({
-          statusCode: body.status,
-          statusMessage: body.error
-        });
-      }
-      return resolve(body);
-    });
-  });
-}
+module.exports = {
 
-function sendResultsToMirrorgate(results, viewId){
-  return new Promise((resolve, reject)=>{
-    request.post(config.mirrorgatePostAnalyticViewsEndpoint,
-      {
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify(_createResponse(results, viewId))
-      },
-      (err, res, body) => {
+  getAWSLoadBalancers: () => {
+    return new Promise((resolve, reject)=>{
+      request.get(config.mirrorgateGetAnalyticViewsEndpoint,(err, res, body) => {
         if (err) {
           return reject(err);
         }
@@ -57,8 +34,34 @@ function sendResultsToMirrorgate(results, viewId){
         }
         return resolve(body);
       });
-  });
+    });
+  },
+
+  sendResultsToMirrorgate: (results, viewId) => {
+    return new Promise((resolve, reject)=>{
+      request.post(config.mirrorgatePostAnalyticViewsEndpoint,
+        {
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify(_createResponse(results, viewId))
+        },
+        (err, res, body) => {
+          if (err) {
+            return reject(err);
+          }
+          body = JSON.parse(body);
+          if(body.status >= 400) {
+            return reject({
+              statusCode: body.status,
+              statusMessage: body.error
+            });
+          }
+          return resolve(body);
+        });
+    });
 }
+};
 
 function _createResponse(responses, viewId){
   let totalErrors = 0;
@@ -107,8 +110,3 @@ function _createResponse(responses, viewId){
 
   return metrics;
 }
-
-module.exports = {
-  getAWSLoadBalancers: getAWSLoadBalancers,
-  sendResultsToMirrorGate: sendResultsToMirrorgate,
-};
