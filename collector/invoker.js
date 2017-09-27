@@ -68,48 +68,46 @@ function isALBElement(listElement){
   return listElement.includes(config.collectorPrefix);
 }
 
-function cloudWatchInvoker(){
-  return APICaller.getAWSLoadBalancers().then((analyticsList) => {
-    var listOfALBs = analyticsList.filter(isALBElement);
-    listOfALBs.forEach( element => {
-      var cleanALB = element.trim().replace(config.collectorPrefix, '');
-      //Get account id and ALB name
-      var splitLocation = cleanALB.indexOf("/");
-      var accountId = cleanALB.substring(0,splitLocation);
-      var albName = cleanALB.substring(splitLocation+1, cleanALB.length);
+module.exports = {
 
-      assumeAWSRole(accountId)
-        .then((element) => {
-          cloudWatch = new AWS.CloudWatch({
-            credentials: {
-              accessKeyId: element.Credentials.AccessKeyId,
-              secretAccessKey: element.Credentials.SecretAccessKey,
-              sessionToken: element.Credentials.SessionToken,
-            }
-          });
-          Promise.all(createInput(albName))
-            .then(results => {
-              APICaller.sendResultsToMirrorgate(results, cleanALB)
-                .then(result => {
-                    console.log("Elements sent to Mirrorgate");
-                    console.log(result);
-                })
-                .catch(error => {
-                    console.log("POST to Mirrorgate failed!");
-                    console.log(error);
-                });
-            })
-            .catch(error => console.log(error));
-        })
-        .catch(error => console.log(error));
+  cloudWatchInvoker: () => {
+    return APICaller.getAWSLoadBalancers().then((analyticsList) => {
+      var listOfALBs = analyticsList.filter(isALBElement);
+      listOfALBs.forEach( element => {
+        var cleanALB = element.trim().replace(config.collectorPrefix, '');
+        //Get account id and ALB name
+        var splitLocation = cleanALB.indexOf("/");
+        var accountId = cleanALB.substring(0,splitLocation);
+        var albName = cleanALB.substring(splitLocation+1, cleanALB.length);
+
+        assumeAWSRole(accountId)
+          .then((element) => {
+            cloudWatch = new AWS.CloudWatch({
+              credentials: {
+                accessKeyId: element.Credentials.AccessKeyId,
+                secretAccessKey: element.Credentials.SecretAccessKey,
+                sessionToken: element.Credentials.SessionToken,
+              }
+            });
+            Promise.all(createInput(albName))
+              .then(results => {
+                APICaller.sendResultsToMirrorgate(results, cleanALB)
+                  .then(result => {
+                      console.log("Elements sent to Mirrorgate");
+                      console.log(result);
+                  })
+                  .catch(error => {
+                      console.log("POST to Mirrorgate failed!");
+                      console.log(error);
+                  });
+              })
+              .catch(error => console.log(error));
+          })
+          .catch(error => console.log(error));
+      });
+    }).catch((error) => {
+      console.log(error);
     });
-  }).catch((error) => {
-    console.log(error);
-  });
-}
+  }
 
-module.exports = (() => {
-    return {
-        cloudWatchInvoker
-    }
-})();
+}
