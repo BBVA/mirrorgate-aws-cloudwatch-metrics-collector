@@ -17,41 +17,43 @@
 const request = require('request');
 const config = require('../config.js');
 
-function getAWSLoadBalancers(){
-  return new Promise((resolve, reject)=>{
-    request.get(config.mirrorgateGetAnalyticViewsEndpoint,(error, response, body) => {
-      if(error){
-        console.log(error);
-        return reject(error);
-      } else {
-        console.log(response.statusCode);
-        console.log(body);
-        return resolve(JSON.parse(body));
-      }
-    });
-  });
-}
-
-function sendResultsToMirrorgate(results, viewId){
-  return new Promise((resolve, reject)=>{
-    request.post(config.mirrorgatePostAnalyticViewsEndpoint,
-      {
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify(_createResponse(results, viewId))
-      },
-      (err, res, body) => {
-        if (err) {
-          console.log(err);
+module.exports = {
+  getAWSLoadBalancers: function getAWSLoadBalancers(){
+    return new Promise((resolve, reject)=>{
+      request.get(config.mirrorgateGetAnalyticViewsEndpoint,(error, response, body) => {
+        if(error){
+          console.log(error);
           return reject(error);
-        }else {
+        } else {
+          console.log(response.statusCode);
           console.log(body);
           return resolve(JSON.parse(body));
         }
       });
-  });
-}
+    });
+  },
+
+  sendResultsToMirrorgate: function sendResultsToMirrorgate(results, viewId){
+    return new Promise((resolve, reject)=>{
+      request.post(config.mirrorgatePostAnalyticViewsEndpoint,
+        {
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify(_createResponse(results, viewId))
+        },
+        (err, res, body) => {
+          if (err) {
+            console.log(err);
+            return reject(error);
+          }else {
+            console.log(body);
+            return resolve(JSON.parse(body));
+          }
+        });
+    });
+  }
+};
 
 function _createResponse(responses, viewId){
   let totalErrors = 0;
@@ -61,7 +63,9 @@ function _createResponse(responses, viewId){
   let totalErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let totalRequestsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
 
+  console.log("Building response");
   responses.forEach(elem => {
+    console.log(elem);
     if(elem.Label === 'HTTPCode_ELB_4XX_Count' || 
        elem.Label === 'HTTPCode_ELB_5XX_Count' || 
        elem.Label === 'HTTPCode_Target_5XX_Count' || 
@@ -100,8 +104,3 @@ function _createResponse(responses, viewId){
 
   return metrics;
 }
-
-module.exports = {
-  getAWSLoadBalancers: getAWSLoadBalancers,
-  sendResultsToMirrorGate: sendResultsToMirrorgate,
-};
