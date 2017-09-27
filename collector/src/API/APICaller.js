@@ -103,5 +103,5 @@ function _createResponse(responses, viewId){
 
 module.exports = {
   getAWSLoadBalancers: getAWSLoadBalancers,
-  sendRresultsToMirrorGate: sendResultsToMirrorgate,
+  sendResultsToMirrorGate: sendResultsToMirrorgate,
 };
