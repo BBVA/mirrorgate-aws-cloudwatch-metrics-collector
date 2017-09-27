@@ -1,0 +1,15 @@
+version: '2'
+
+services:
+  install:
+      image: "node:7-slim"
+      volumes:
+        - .:/tmp/repo
+      working_dir: "/tmp/repo"
+      command: "npm install"
+  package:
+      image: "node:7-slim"
+      volumes:
+        - .:/tmp/repo
+      working_dir: "/tmp/repo"
+      command: "./node_modules/gulp/bin/gulp.js package"
