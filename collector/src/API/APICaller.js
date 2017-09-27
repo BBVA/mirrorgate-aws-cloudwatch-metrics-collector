@@ -19,15 +19,18 @@ const config = require('../config.js');
 
 function getAWSLoadBalancers(){
   return new Promise((resolve, reject)=>{
-    request.get(config.mirrorgateGetAnalyticViewsEndpoint,(error, response, body) => {
-      if(error){
-        console.log(error);
-        return reject(error);
-      } else {
-        console.log(response.statusCode);
-        console.log(body);
-        return resolve(JSON.parse(body));
+    request.get(config.mirrorgateGetAnalyticViewsEndpoint,(err, res, body) => {
+      if (err) {
+        return reject(err);
       }
+      body = JSON.parse(body);
+      if(body.status >= 400) {
+        return reject({
+          statusCode: body.status,
+          statusMessage: body.error
+        });
+      }
+      return resolve(body);
     });
   });
 }
@@ -43,12 +46,16 @@ function sendResultsToMirrorgate(results, viewId){
       },
       (err, res, body) => {
         if (err) {
-          console.log(err);
-          return reject(error);
-        }else {
-          console.log(body);
-          return resolve(JSON.parse(body));
+          return reject(err);
         }
+        body = JSON.parse(body);
+        if(body.status >= 400) {
+          return reject({
+            statusCode: body.status,
+            statusMessage: body.error
+          });
+        }
+        return resolve(body);
       });
   });
 }
@@ -62,16 +69,16 @@ function _createResponse(responses, viewId){
   let totalRequestsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
 
   responses.forEach(elem => {
-    if(elem.Label === 'HTTPCode_ELB_4XX_Count' || 
-       elem.Label === 'HTTPCode_ELB_5XX_Count' || 
-       elem.Label === 'HTTPCode_Target_5XX_Count' || 
+    if(elem.Label === 'HTTPCode_ELB_4XX_Count' ||
+       elem.Label === 'HTTPCode_ELB_5XX_Count' ||
+       elem.Label === 'HTTPCode_Target_5XX_Count' ||
        elem.Label === 'HTTPCode_Target_4XX_Count'){
 
         if(elem.Datapoints &&  elem.Datapoints.length !== 0){
           totalErrors += elem.Datapoints[0].Sum;
           totalErrorsDate = new Date(elem.Datapoints[0].Timestamp).getTime();
         }
-          
+
     } else {
       if(elem.Datapoints &&  elem.Datapoints.length !== 0){
         totalRequests += elem.Datapoints[0].Sum;
