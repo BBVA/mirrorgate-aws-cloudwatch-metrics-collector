@@ -33,14 +33,6 @@ function assumeAWSRole(accountId){
   return sts.assumeRole(params).promise();
 }
 
-function metricsCallback(err, data){
-  if (err) {
-    console.log(err, err.stack);
-  } else {
-    console.log(data);
-  }
-}
-
 function addDimensions(template, metricName, loadBalancer){
   var AWSBalancer = Object.assign({}, template);
 
