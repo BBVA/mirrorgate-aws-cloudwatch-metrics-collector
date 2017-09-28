@@ -27,7 +27,7 @@ AWS.config.update({region:'eu-west-1'});
 function assumeAWSRole(accountId){
   var params = {
     DurationSeconds: 900, 
-    RoleArn: "arn:aws:iam::"+accountId+":role/test_delegated_cloudwatch_metrics_role", 
+    RoleArn: "arn:aws:iam::"+accountId+":role/delegated-cloudwatch-metrics-role", 
     RoleSessionName: "MirrorGate"
   };
   return sts.assumeRole(params).promise();
@@ -72,7 +72,8 @@ function cloudWatchInvoker(){
   return APICaller.getAWSLoadBalancers().then((analyticsList) => {
     var listOfALBs = analyticsList.filter(isALBElement);
     listOfALBs.forEach( element => {
-      var cleanALB = element.trim().replace(config.collectorPrefix, '');
+      var viewId = element.trim();
+      var cleanALB = viewId.replace(config.collectorPrefix, '');
       //Get account id and ALB name
       var splitLocation = cleanALB.indexOf("/");
       var accountId = cleanALB.substring(0,splitLocation);
@@ -88,7 +89,7 @@ function cloudWatchInvoker(){
         });
         Promise.all(createInput(albName))
         .then(results => {
-          APICaller.sendResultsToMirrorgate(results, cleanALB)
+          APICaller.sendResultsToMirrorgate(results, viewId)
             .then(result => {
                 console.log("Elements sent to Mirrorgate");
                 console.log(result); })
