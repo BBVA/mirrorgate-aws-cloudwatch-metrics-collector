@@ -96,7 +96,7 @@ function _createResponse(responses, viewId){
   metrics.push({
     viewId: viewId,
     platform: 'AWS',
-    name: 'RequestsNumber',
+    name: 'requestsNumber',
     value: totalRequests,
     timestamp: totalRequestsDate,
     collectorId: config.collectorId
