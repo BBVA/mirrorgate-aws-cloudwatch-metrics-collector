@@ -23,7 +23,6 @@ var sts = new AWS.STS();
 var cloudWatch;
 var elbv2;
 
-
 AWS.config.update({region:'eu-west-1'});
 
 function assumeAWSRole(accountId){
@@ -81,22 +80,21 @@ function getMetrics(albName) {
     .then( (data) => {
       let promises = []
       data.LoadBalancers.forEach((lb) => {
-          promises.push(
-            elbv2
-              .describeTargetGroups({
-                LoadBalancerArn: lb.LoadBalancerArn
-              })
-              .promise()
-              .then( (data) => {
-                return Promise.all(createInput(
-                  lb.LoadBalancerArn.split('loadbalancer/')[1],
-                  data.TargetGroups
-                ));
-              })
-              .catch( err => console.error(`Error getting metrics from Amazon: ${JSON.stringify(err)}`))
-            );
+        promises.push(
+          elbv2
+            .describeTargetGroups({
+              LoadBalancerArn: lb.LoadBalancerArn
+            })
+            .promise()
+            .then( (data) => {
+              return Promise.all(createInput(
+                lb.LoadBalancerArn.split('loadbalancer/')[1],
+                data.TargetGroups
+              ));
+            })
+            .catch( err => console.error(`Error getting metrics from Amazon: ${JSON.stringify(err)}`))
+          );
       });
-
 
       return Promise.all(promises);
     })
