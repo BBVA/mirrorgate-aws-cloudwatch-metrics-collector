@@ -18,6 +18,7 @@ module.exports = {
   timeLapse : process.env.TIME_LAPSE || 10,
   mirrorgateGetAnalyticViewsEndpoint: process.env.MIRRORGATE_GET_ANALYTICS_ENDPOINT || 'http://localhost:8080/mirrorgate/api/user-metrics/analytic-views',
   mirrorgatePostAnalyticViewsEndpoint: process.env.MIRRORGATE_POST_ANALYTICS_ENDPOINT ||'http://localhost:8080/mirrorgate/api/user-metrics',
-  collectorPrefix: 'AWS/',
-  collectorId: process.env.COLLECTOR_ID || 'mirrorgate-aws-cloudwatch-metrics-collector'
+  collectorPrefix: process.env.COLLECTOR_PREFIX || 'AWS/',
+  collectorId: process.env.COLLECTOR_ID || 'mirrorgate-aws-cloudwatch-metrics-collector',
+  roleName: process.env.ROLE_NAME || 'delegated-cloudwatch-metrics-role'
 };

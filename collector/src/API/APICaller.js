@@ -19,7 +19,7 @@ const config = require('../config.js');
 
 module.exports = {
 
-  getAWSLoadBalancers: () => {
+  getAWSAnalyticsList: () => {
     return new Promise((resolve, reject)=>{
       request.get(config.mirrorgateGetAnalyticViewsEndpoint,(err, res, body) => {
         if (err) {
@@ -60,18 +60,24 @@ module.exports = {
           return resolve(body);
         });
     });
-}
+  }
 };
 
 function _createResponse(responses, viewId){
+
+  let metrics = [];
+
   let totalErrors = 0;
   let totalRequests = 0;
-  let metrics = [];
+  let totalHealthyChecks = 0;
+
   //Cloudwatch returns data with two minutes delay, so we adjust to that
   let totalErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let totalRequestsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
+  let totalHealthyChecksDate = new Date(new Date().getTime() - 120 * 1000).getTime();
 
   responses.forEach(elem => {
+
     if(elem.Label === 'HTTPCode_ELB_4XX_Count' ||
        elem.Label === 'HTTPCode_ELB_5XX_Count' ||
        elem.Label === 'HTTPCode_Target_5XX_Count' ||
@@ -81,13 +87,21 @@ function _createResponse(responses, viewId){
           totalErrors += elem.Datapoints[0].Sum;
           totalErrorsDate = new Date(elem.Datapoints[0].Timestamp).getTime();
         }
-
-    } else {
-      if(elem.Datapoints &&  elem.Datapoints.length !== 0){
-        totalRequests += elem.Datapoints[0].Sum;
-        totalRequestsDate = new Date(elem.Datapoints[0].Timestamp).getTime();
-      }
+        return;
     }
+
+    if(elem.Label === 'RequestCount' && elem.Datapoints &&  elem.Datapoints.length !== 0){
+      totalRequests += elem.Datapoints[0].Sum;
+      totalRequestsDate = new Date(elem.Datapoints[0].Timestamp).getTime();
+      return;
+    }
+
+    if(elem.Label === 'HealthyHostCount' && elem.Datapoints &&  elem.Datapoints.length !== 0) {
+      totalHealthyChecks += elem.Datapoints[0].Sum;
+      totalHealthyChecksDate = new Date(elem.Datapoints[0].Timestamp).getTime();
+      return;
+    }
+
   });
 
   metrics.push({
@@ -102,9 +116,18 @@ function _createResponse(responses, viewId){
   metrics.push({
     viewId: viewId,
     platform: 'AWS',
-    name: 'RequestsNumber',
+    name: 'requestsNumber',
     value: totalRequests,
     timestamp: totalRequestsDate,
+    collectorId: config.collectorId
+  });
+
+  metrics.push({
+    viewId: viewId,
+    platform: 'AWS',
+    name: 'healthyChecks',
+    value: totalHealthyChecks,
+    timestamp: totalHealthyChecksDate,
     collectorId: config.collectorId
   });
 

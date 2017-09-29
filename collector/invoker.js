@@ -21,85 +21,142 @@ const APICaller = require('./src/API/APICaller.js');
 var AWS = require('aws-sdk');
 var sts = new AWS.STS();
 var cloudWatch;
+var elbv2;
+
 
 AWS.config.update({region:'eu-west-1'});
 
 function assumeAWSRole(accountId){
   var params = {
     DurationSeconds: 900,
-    RoleArn: "arn:aws:iam::"+accountId+":role/test_delegated_cloudwatch_metrics_role",
-    RoleSessionName: "MirrorGate"
+    RoleArn: `arn:aws:iam::${accountId}:role/${config.roleName}`,
+    RoleSessionName: 'MirrorGate'
   };
   return sts.assumeRole(params).promise();
 }
 
-function addDimensions(template, metricName, loadBalancer){
+function addDimensions(template, metricName, loadBalancer, targetGroup){
   var AWSBalancer = Object.assign({}, template);
 
-  AWSBalancer.Dimensions =  [{
+  AWSBalancer.Dimensions =  [
+    {
       "Name": "LoadBalancer",
-      "Value": loadBalancer}];
+      "Value": loadBalancer
+    },
+    {
+      "Name": "TargetGroup",
+      "Value": targetGroup
+    }
+  ];
 
   AWSBalancer.MetricName = metricName;
-  console.log(AWSBalancer);
 
   return AWSBalancer;
 }
 
-function createInput(ALBName){
+function createInput(ALBName, targetGroups){
   let metricInputs = [];
 
-  metrics.metricNames.forEach(function(element){
-    metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(template.template, element, ALBName)).promise());
+  targetGroups.forEach((tg) => {
+    metrics.metricNames.forEach(function(element){
+      metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(template.template, element, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`)).promise());
+    });
   });
 
   return metricInputs;
 }
 
-function isALBElement(listElement){
+function isAWSElement(listElement){
   return listElement.includes(config.collectorPrefix);
+}
+
+function getMetrics(albName) {
+  return elbv2
+    .describeLoadBalancers({
+      Names: [
+         albName
+      ]
+    })
+    .promise()
+    .then( (data) => {
+      let promises = []
+      data.LoadBalancers.forEach((lb) => {
+          promises.push(
+            elbv2
+              .describeTargetGroups({
+                LoadBalancerArn: lb.LoadBalancerArn
+              })
+              .promise()
+              .then( (data) => {
+                return Promise.all(createInput(
+                  lb.LoadBalancerArn.split('loadbalancer/')[1],
+                  data.TargetGroups
+                ));
+              })
+              .catch( err => console.error(`Error getting metrics from Amazon: ${JSON.stringify(err)}`))
+            );
+      });
+
+
+      return Promise.all(promises);
+    })
 }
 
 module.exports = {
 
   cloudWatchInvoker: () => {
-    return APICaller.getAWSLoadBalancers().then((analyticsList) => {
-      var listOfALBs = analyticsList.filter(isALBElement);
-      listOfALBs.forEach( element => {
-        var cleanALB = element.trim().replace(config.collectorPrefix, '');
-        //Get account id and ALB name
-        var splitLocation = cleanALB.indexOf("/");
-        var accountId = cleanALB.substring(0,splitLocation);
-        var albName = cleanALB.substring(splitLocation+1, cleanALB.length);
+    return APICaller
+      .getAWSAnalyticsList()
+      .then((analyticsList) => {
 
-        assumeAWSRole(accountId)
-          .then((element) => {
-            cloudWatch = new AWS.CloudWatch({
-              credentials: {
-                accessKeyId: element.Credentials.AccessKeyId,
-                secretAccessKey: element.Credentials.SecretAccessKey,
-                sessionToken: element.Credentials.SessionToken,
-              }
-            });
-            Promise.all(createInput(albName))
-              .then(results => {
-                APICaller.sendResultsToMirrorgate(results, cleanALB)
-                  .then(result => {
-                      console.log("Elements sent to Mirrorgate");
-                      console.log(result);
-                  })
-                  .catch(error => {
-                      console.log("POST to Mirrorgate failed!");
-                      console.log(error);
+        analyticsList
+          .filter(isAWSElement)
+          .forEach( AWSElement => {
+
+            //Get account id and ALB name if this exists
+            let cleanALB = AWSElement.trim().replace(config.collectorPrefix, '');
+            let accountId = cleanALB.split('/')[0];
+            let albName = cleanALB.split('/')[1];
+
+            assumeAWSRole(accountId)
+              .then((element) => {
+
+                cloudWatch = new AWS.CloudWatch({
+                  credentials: {
+                    accessKeyId: element.Credentials.AccessKeyId,
+                    secretAccessKey: element.Credentials.SecretAccessKey,
+                    sessionToken: element.Credentials.SessionToken,
+                  }
+                });
+
+                elbv2 = new AWS.ELBv2({
+                  credentials: {
+                    accessKeyId: element.Credentials.AccessKeyId,
+                    secretAccessKey: element.Credentials.SecretAccessKey,
+                    sessionToken: element.Credentials.SessionToken
+                  }
+                });
+
+                return getMetrics(albName)
+                  .then((results) => {
+                    let metrics_combined = []
+                    results.forEach((metrics) => {
+                      metrics.forEach((metric) => {
+                        metrics_combined.push(metric);
+                      });
+                    })
+
+                    APICaller
+                      .sendResultsToMirrorgate(metrics_combined, AWSElement)
+                      .then( result => console.log(`Elements sent to MirrorGate: ${JSON.stringify(result, null, '  ')}`))
+                      .catch( err => console.error(`Error sending metrics to MirrorGate: ${JSON.stringify(err)}`));
                   });
               })
-              .catch(error => console.log(error));
-          })
-          .catch(error => console.log(error));
-      });
-    }).catch((error) => {
-      console.log(error);
-    });
-  }
+              .catch( err => console.error(`Error getting metrics from Amazon: ${JSON.stringify(err)}`));
+
+          });
+      })
+      .catch( err => console.error(`Error getting analystics list from MirrorGate: ${JSON.stringify(err)}`));
+  },
 
 }
