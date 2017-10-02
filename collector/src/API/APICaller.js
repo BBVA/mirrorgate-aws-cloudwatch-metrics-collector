@@ -18,22 +18,26 @@ const request = require('request');
 const config = require('../config.js');
 
 module.exports = {
-  getAWSLoadBalancers: function getAWSLoadBalancers(){
+
+  getAWSAnalyticsList: () => {
     return new Promise((resolve, reject)=>{
-      request.get(config.mirrorgateGetAnalyticViewsEndpoint,(error, response, body) => {
-        if(error){
-          console.log(error);
-          return reject(error);
-        } else {
-          console.log(response.statusCode);
-          console.log(body);
-          return resolve(JSON.parse(body));
+      request.get(config.mirrorgateGetAnalyticViewsEndpoint,(err, res, body) => {
+        if (err) {
+          return reject(err);
         }
+        body = JSON.parse(body);
+        if(body.status >= 400) {
+          return reject({
+            statusCode: body.status,
+            statusMessage: body.error
+          });
+        }
+        return resolve(body);
       });
     });
   },
 
-  sendResultsToMirrorgate: function sendResultsToMirrorgate(results, viewId){
+  sendResultsToMirrorgate: (results, viewId) => {
     return new Promise((resolve, reject)=>{
       request.post(config.mirrorgatePostAnalyticViewsEndpoint,
         {
@@ -44,44 +48,60 @@ module.exports = {
         },
         (err, res, body) => {
           if (err) {
-            console.log(err);
-            return reject(error);
-          }else {
-            console.log(body);
-            return resolve(JSON.parse(body));
+            return reject(err);
           }
+          body = JSON.parse(body);
+          if(body.status >= 400) {
+            return reject({
+              statusCode: body.status,
+              statusMessage: body.error
+            });
+          }
+          return resolve(body);
         });
     });
   }
 };
 
 function _createResponse(responses, viewId){
+
+  let metrics = [];
+
   let totalErrors = 0;
   let totalRequests = 0;
-  let metrics = [];
+  let totalHealthyChecks = 0;
+
   //Cloudwatch returns data with two minutes delay, so we adjust to that
   let totalErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let totalRequestsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
+  let totalHealthyChecksDate = new Date(new Date().getTime() - 120 * 1000).getTime();
 
-  console.log("Building response");
   responses.forEach(elem => {
-    console.log(elem);
-    if(elem.Label === 'HTTPCode_ELB_4XX_Count' || 
-       elem.Label === 'HTTPCode_ELB_5XX_Count' || 
-       elem.Label === 'HTTPCode_Target_5XX_Count' || 
+
+    if(elem.Label === 'HTTPCode_ELB_4XX_Count' ||
+       elem.Label === 'HTTPCode_ELB_5XX_Count' ||
+       elem.Label === 'HTTPCode_Target_5XX_Count' ||
        elem.Label === 'HTTPCode_Target_4XX_Count'){
 
         if(elem.Datapoints &&  elem.Datapoints.length !== 0){
           totalErrors += elem.Datapoints[0].Sum;
           totalErrorsDate = new Date(elem.Datapoints[0].Timestamp).getTime();
         }
-          
-    } else {
-      if(elem.Datapoints &&  elem.Datapoints.length !== 0){
-        totalRequests += elem.Datapoints[0].Sum;
-        totalRequestsDate = new Date(elem.Datapoints[0].Timestamp).getTime();
-      }
+        return;
     }
+
+    if(elem.Label === 'RequestCount' && elem.Datapoints &&  elem.Datapoints.length !== 0){
+      totalRequests += elem.Datapoints[0].Sum;
+      totalRequestsDate = new Date(elem.Datapoints[0].Timestamp).getTime();
+      return;
+    }
+
+    if(elem.Label === 'HealthyHostCount' && elem.Datapoints &&  elem.Datapoints.length !== 0) {
+      totalHealthyChecks += elem.Datapoints[0].Sum;
+      totalHealthyChecksDate = new Date(elem.Datapoints[0].Timestamp).getTime();
+      return;
+    }
+
   });
 
   metrics.push({
@@ -99,6 +119,15 @@ function _createResponse(responses, viewId){
     name: 'requestsNumber',
     value: totalRequests,
     timestamp: totalRequestsDate,
+    collectorId: config.collectorId
+  });
+
+  metrics.push({
+    viewId: viewId,
+    platform: 'AWS',
+    name: 'healthyChecks',
+    value: totalHealthyChecks,
+    timestamp: totalHealthyChecksDate,
     collectorId: config.collectorId
   });
 

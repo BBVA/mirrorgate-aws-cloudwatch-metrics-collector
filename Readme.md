@@ -2,35 +2,35 @@
 
 ![MirrorGate](media/images/logo-mirrorgate.png)
 
-This Node application connects to Amazon Cloudwatch and retrieves metrics about the number of requests, 4XX and 5XX errors occurred in an ALB   
+This Node application connects to Amazon Cloudwatch and retrieves metrics about the number of requests, the number of healthy checks, 4XX and 5XX errors occurred in an ALB
 
 
 # Configuring
 
 Check [config.js](./src/config/config.js) file to check for configuration options.
 
-The Cloudwatch Metrics Collector works with the assumption that both the endpoint to recover the ALBs that need 
-to be queried and the endpoint to send the results are configured as environment variables. 
+The Cloudwatch Metrics Collector works with the assumption that both the endpoint to recover the ALBs that need
+to be queried and the endpoint to send the results are configured as environment variables.
 ```
 MIRRORGATE_POST_ANALYTICS_ENDPOINT
 MIRRORGATE_GET_ANALYTICS_ENDPOINT
 ```
-  
+
 If not, default endpoints defined in properties will be used.
 ```
 mirrorgatePostAnalyticViewsEndpoint = 'http://localhost:8080/mirrorgate/api/user-metrics'
 mirrorgateGetAnalyticViewsEndpoint = 'http://localhost:8080/mirrorgate/api/user-metrics/analytic-views'
 ```
 
-The collector will filter the results and will only take the ones that come with the AWS/ prefix. The expected info from the GET endpoint 
+The collector will filter the results and will only take the ones that come with the AWS/ prefix. The expected info from the GET endpoint
 should follow this pattern:
 ```
 AWS/{AWS_Account}/{ALB_name}
-``` 
+```
 
 ## AWS roles and policies needed
-Since this collector is intended to gather information from different Cloudwatch sources, we need to make sure that 
-we have permission to access those sources. To make this information accessible for the collection, the account where 
+Since this collector is intended to gather information from different Cloudwatch sources, we need to make sure that
+we have permission to access those sources. To make this information accessible for the collection, the account where
 Cloudwatch is running we need to create the following role on that account:
 
 
@@ -63,9 +63,9 @@ and a policy that allows that role to access the following resources
         {
             "Effect": "Allow",
             "Action": [
-                "cloudwatch:*",
-                "ec2:*",
-                "elasticloadbalancing:*"
+                "cloudwatch:getMetricStatistics",
+                "elasticloadbalancing:DescribeLoadBalancers",
+                "elasticloadbalancing:DescribeTargetGroups"
             ],
             "Resource": [
                 "*"
@@ -85,21 +85,21 @@ This allows the user or role used for running the code to impersonate a user in 
 First install dependencies
 
 ```sh
-  npm i 
+  npm i
 ```
-You need to install AWS CLI and configure it with your user. Then you can assume _delegated-cloudwatch-metrics-role_ 
+You need to install AWS CLI and configure it with your user. Then you can assume _delegated-cloudwatch-metrics-role_
 in your local machine with the following command:
 ```
 aws sts --profile {local_profile} --role-arn arn:aws:iam::{Destination_AWS_account_number}:role/delegated-cloudwatch-metrics-role --role-session-name test_delegated
 ```
 
-Then run `local.js` with node
+Then run `local.js` with npm
 
 ```sh
-  node local.js
+  nmp run local
 ```
 
-or with npm 
+or with npm
 
 ```sh
   npm run start
@@ -113,7 +113,7 @@ First package script zip with the following gulp task
 ```sh
 ./node_modules/gulp/bin/gulp.js package
 ```
-or with npm 
+or with npm
 
 ```sh
 npm run package
