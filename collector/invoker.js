@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
-const config = require('./src/config.js');
+const fs = require('fs');
+const config = require('nconf');
+
+config.argv()
+  .env()
+  .file('config/config.json');
+
 const metrics = require('./src/metrics/metrics.js');
 const template = require('./src/metrics/metricsRequestTemplate.js');
 const APICaller = require('./src/API/APICaller.js');
@@ -28,7 +34,7 @@ AWS.config.update({region:'eu-west-1'});
 function assumeAWSRole(accountId){
   var params = {
     DurationSeconds: 900,
-    RoleArn: `arn:aws:iam::${accountId}:role/${config.roleName}`,
+    RoleArn: `arn:aws:iam::${accountId}:role/${config.get('ROLE_NAME')}`,
     RoleSessionName: 'MirrorGate'
   };
   return sts.assumeRole(params).promise();
@@ -66,7 +72,7 @@ function createInput(ALBName, targetGroups){
 }
 
 function isAWSElement(listElement){
-  return listElement.includes(config.collectorPrefix);
+  return listElement.includes(config.get('COLLECTOR_PREFIX'));
 }
 
 function getMetrics(albName) {
@@ -112,7 +118,7 @@ module.exports = {
           .forEach( AWSElement => {
 
             //Get account id and ALB name if this exists
-            let cleanALB = AWSElement.trim().replace(config.collectorPrefix, '');
+            let cleanALB = AWSElement.trim().replace(config.get('COLLECTOR_PREFIX'), '');
             let accountId = cleanALB.split('/')[0];
             let albName = cleanALB.split('/')[1];
 
@@ -154,7 +160,7 @@ module.exports = {
 
           });
       })
-      .catch( err => console.error(`Error getting analystics list from MirrorGate: ${JSON.stringify(err)}`));
+      .catch( err => console.error(`Error getting analystics list from MirrorGate: ${err}`));
   },
 
 }

@@ -15,13 +15,19 @@
  */
 
 const request = require('request');
-const config = require('../config.js');
+const fs = require('fs');
+const config = require('nconf');
+const path = require('path');
+
+config.argv()
+  .env()
+  .file(path.resolve(__dirname, '../../config/config.json'));
 
 module.exports = {
 
   getAWSAnalyticsList: () => {
     return new Promise((resolve, reject)=>{
-      request.get(config.mirrorgateGetAnalyticViewsEndpoint,(err, res, body) => {
+      request.get(`${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics/analytic-views`,(err, res, body) => {
         if (err) {
           return reject(err);
         }
@@ -39,7 +45,7 @@ module.exports = {
 
   sendResultsToMirrorgate: (results, viewId) => {
     return new Promise((resolve, reject)=>{
-      request.post(config.mirrorgatePostAnalyticViewsEndpoint,
+      request.post(`${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics`,
         {
           headers: {
             'content-type': 'application/json',
@@ -110,7 +116,7 @@ function _createResponse(responses, viewId){
     name: 'errorsNumber',
     value: totalErrors,
     timestamp: totalErrorsDate,
-    collectorId: config.collectorId
+    collectorId: config.get('COLLECTOR_ID')
   });
 
   metrics.push({
@@ -119,7 +125,7 @@ function _createResponse(responses, viewId){
     name: 'requestsNumber',
     value: totalRequests,
     timestamp: totalRequestsDate,
-    collectorId: config.collectorId
+    collectorId: config.get('COLLECTOR_ID')
   });
 
   metrics.push({
@@ -128,7 +134,7 @@ function _createResponse(responses, viewId){
     name: 'healthyChecks',
     value: totalHealthyChecks,
     timestamp: totalHealthyChecksDate,
-    collectorId: config.collectorId
+    collectorId: config.get('COLLECTOR_ID')
   });
 
   return metrics;
