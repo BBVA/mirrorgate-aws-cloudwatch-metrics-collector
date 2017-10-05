@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
+const metrics = require('./src/metrics/metrics.js').metrics;
+const APICaller = require('./src/API/APICaller.js');
+const AWS = require('aws-sdk');
 const fs = require('fs');
+const path = require('path');
 const config = require('nconf');
 
-config.argv()
-  .env()
-  .file('config/config.json');
-
-const metrics = require('./src/metrics/metrics.js');
-const template = require('./src/metrics/metricsRequestTemplate.js');
-const APICaller = require('./src/API/APICaller.js');
-var AWS = require('aws-sdk');
 var sts = new AWS.STS();
 var cloudWatch;
 var elbv2;
+
+config.argv()
+  .env()
+  .file(path.resolve(__dirname, './config/config.json'));
 
 AWS.config.update({region:'eu-west-1'});
 
@@ -40,10 +40,9 @@ function assumeAWSRole(accountId){
   return sts.assumeRole(params).promise();
 }
 
-function addDimensions(template, metricName, loadBalancer, targetGroup){
-  var AWSBalancer = Object.assign({}, template);
+function addDimensions(metric, loadBalancer, targetGroup){
 
-  AWSBalancer.Dimensions =  [
+  metric.Dimensions =  [
     {
       "Name": "LoadBalancer",
       "Value": loadBalancer
@@ -54,17 +53,15 @@ function addDimensions(template, metricName, loadBalancer, targetGroup){
     }
   ];
 
-  AWSBalancer.MetricName = metricName;
-
-  return AWSBalancer;
+  return metric;
 }
 
 function createInput(ALBName, targetGroups){
   let metricInputs = [];
 
   targetGroups.forEach((tg) => {
-    metrics.metricNames.forEach(function(element){
-      metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(template.template, element, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`)).promise());
+    metrics.forEach((metric) => {
+      metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(metric, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`)).promise());
     });
   });
 
@@ -98,7 +95,7 @@ function getMetrics(albName) {
                 data.TargetGroups
               ));
             })
-            .catch( err => console.error(`Error getting metrics from Amazon: ${JSON.stringify(err)}`))
+            .catch( err => console.error(`Error getting metrics from Amazon: ${err}`))
           );
       });
 
@@ -112,7 +109,6 @@ module.exports = {
     return APICaller
       .getAWSAnalyticsList()
       .then((analyticsList) => {
-
         analyticsList
           .filter(isAWSElement)
           .forEach( AWSElement => {
@@ -156,7 +152,7 @@ module.exports = {
                       .catch( err => console.error(`Error sending metrics to MirrorGate: ${JSON.stringify(err)}`));
                   });
               })
-              .catch( err => console.error(`Error getting metrics from Amazon: ${JSON.stringify(err)}`));
+              .catch( err => console.error(`Error getting metrics from Amazon: ${err}`));
 
           });
       })
