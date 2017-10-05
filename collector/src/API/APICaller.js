@@ -77,11 +77,13 @@ function _createResponse(responses, viewId){
   let totalRequests = 0;
   let totalPositivieHealthyChecks = 0;
   let totalZeroHealthyChecks = 0;
+  let responseTime;
 
   //Cloudwatch returns data with two minutes delay, so we adjust to that
   let totalErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let totalRequestsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let totalHealthyChecksDate = new Date(new Date().getTime() - 120 * 1000).getTime();
+  let responseTimeDate = new Date(new Date().getTime() - 120 * 1000).getTime();
 
   responses.forEach(elem => {
 
@@ -109,36 +111,28 @@ function _createResponse(responses, viewId){
       return;
     }
 
+    if(elem.Label === 'TargetResponseTime' && elem.Datapoints &&  elem.Datapoints.length !== 0){
+      responseTime = !responseTime ? elem.Datapoints[0].Average : Math.max(responseTime, elem.Datapoints[0].Average);
+      responseTimeDate = new Date(elem.Datapoints[0].Timestamp).getTime();
+      return;
+    }
   });
 
-  metrics.push({
+  let template = {
     viewId: viewId,
     platform: 'AWS',
-    name: 'errorsNumber',
-    value: totalErrors,
-    timestamp: totalErrorsDate,
     collectorId: config.get('COLLECTOR_ID')
-  });
-
-  metrics.push({
-    viewId: viewId,
-    platform: 'AWS',
-    name: 'requestsNumber',
-    value: totalRequests,
-    timestamp: totalRequestsDate,
-    collectorId: config.get('COLLECTOR_ID')
-  });
+  }
 
   let availabilityRate = parseFloat((totalPositivieHealthyChecks * 100/(totalPositivieHealthyChecks + totalZeroHealthyChecks)).toFixed(2));
+  responseTime = parseFloat(responseTime.toFixed(2));
 
-  metrics.push({
-    viewId: viewId,
-    platform: 'AWS',
-    name: 'availabilityRate',
-    value: availabilityRate,
-    timestamp: totalHealthyChecksDate,
-    collectorId: config.get('COLLECTOR_ID')
-  });
+  metrics = [
+    { name: 'errorsNumber', value: totalErrors, timestamp: totalErrorsDate },
+    { name: 'requestsNumber', value: totalRequests, timestamp: totalRequestsDate },
+    { name: 'availabilityRate', value: availabilityRate, timestamp: totalHealthyChecksDate },
+    { name: 'responseTime', value: responseTime, timestamp: responseTimeDate }
+  ].map((m) => Object.assign({}, template, m));
 
   return metrics;
 }
