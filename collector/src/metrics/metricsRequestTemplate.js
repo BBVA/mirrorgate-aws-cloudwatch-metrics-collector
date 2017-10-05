@@ -29,7 +29,9 @@ var template = {
   StartTime: new Date(new Date().getTime() - (60 * 1000 * config.get('TIME_LAPSE'))),
   EndTime: new Date(),
 
-  Statistics: ['Sum']
+  Statistics: ['Sum'],
+
+  needsTargetGroup: false
 };
 
 exports.template = template;

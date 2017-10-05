@@ -42,16 +42,19 @@ function assumeAWSRole(accountId){
 
 function addDimensions(metric, loadBalancer, targetGroup){
 
-  metric.Dimensions =  [
-    {
-      "Name": "LoadBalancer",
-      "Value": loadBalancer
-    },
-    {
+  metric.Dimensions =  []
+
+  metric.Dimensions.push({
+    "Name": "LoadBalancer",
+    "Value": loadBalancer
+  });
+
+  if(targetGroup) {
+    metric.Dimensions.push({
       "Name": "TargetGroup",
       "Value": targetGroup
-    }
-  ];
+    });
+  }
 
   return metric;
 }
@@ -59,10 +62,16 @@ function addDimensions(metric, loadBalancer, targetGroup){
 function createInput(ALBName, targetGroups){
   let metricInputs = [];
 
-  targetGroups.forEach((tg) => {
-    metrics.forEach((metric) => {
-      metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(metric, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`)).promise());
-    });
+  metrics.forEach((metric) => {
+    if(metric.needsTargetGroup) {
+      delete metric.needsTargetGroup ;
+      targetGroups.forEach((tg) => {
+        metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(metric, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`)).promise());
+      });
+    } else {
+      delete metric.needsTargetGroup;
+      metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(metric, ALBName)).promise());
+    }
   });
 
   return metricInputs;
@@ -149,7 +158,7 @@ module.exports = {
                     APICaller
                       .sendResultsToMirrorgate(metrics_combined, AWSElement)
                       .then( result => console.log(`Elements sent to MirrorGate: ${JSON.stringify(result, null, '  ')}`))
-                      .catch( err => console.error(`Error sending metrics to MirrorGate: ${JSON.stringify(err)}`));
+                      .catch( err => console.error(`Error sending metrics to MirrorGate: ${err}`));
                   });
               })
               .catch( err => console.error(`Error getting metrics from Amazon: ${err}`));

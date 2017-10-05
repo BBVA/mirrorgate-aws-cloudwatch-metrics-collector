@@ -22,7 +22,8 @@ const metrics = [
   {MetricName: 'HTTPCode_Target_5XX_Count'},
   {MetricName: 'HTTPCode_Target_4XX_Count'},
   {MetricName: 'RequestCount'},
-  {MetricName: 'HealthyHostCount', Period: 60},
+  {MetricName: 'HealthyHostCount', Period: 60, needsTargetGroup: true},
+  {MetricName: 'TargetResponseTime', Statistics: ['Average']}
 ].map((m) => Object.assign({}, template, m));
 
 exports.metrics = metrics;
