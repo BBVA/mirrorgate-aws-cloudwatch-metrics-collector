@@ -165,7 +165,7 @@ module.exports = {
 
           });
       })
-      .catch( err => console.error(`Error getting analystics list from MirrorGate: ${err}`));
+      .catch( err => console.error(`Error getting analystics list from MirrorGate: ${JSON.stringify(err, null, '  ')}`));
   },
 
 }

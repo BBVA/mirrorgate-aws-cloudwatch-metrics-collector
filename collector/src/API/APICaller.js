@@ -31,14 +31,15 @@ module.exports = {
         if (err) {
           return reject(err);
         }
-        body = JSON.parse(body);
-        if(body.status >= 400) {
+
+        if(res.statusCode >= 400) {
           return reject({
-            statusCode: body.status,
-            statusMessage: body.error
+            statusCode: res.statusCode,
+            statusMessage: res.statusMessage
           });
         }
-        return resolve(body);
+
+        return resolve(JSON.parse(body));
       });
     });
   },
@@ -56,14 +57,15 @@ module.exports = {
           if (err) {
             return reject(err);
           }
-          body = JSON.parse(body);
-          if(body.status >= 400) {
+
+          if(res.statusCode >= 400) {
             return reject({
-              statusCode: body.status,
-              statusMessage: body.error
+              statusCode: res.statusCode,
+              statusMessage: res.statusMessage
             });
           }
-          return resolve(body);
+
+          return resolve(JSON.parse(body));
         });
     });
   }
