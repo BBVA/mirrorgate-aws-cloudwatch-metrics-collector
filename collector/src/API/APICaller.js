@@ -15,31 +15,38 @@
  */
 
 const request = require('request');
-const config = require('../config.js');
+const fs = require('fs');
+const config = require('nconf');
+const path = require('path');
+
+config.argv()
+  .env()
+  .file(path.resolve(__dirname, '../../config/config.json'));
 
 module.exports = {
 
   getAWSAnalyticsList: () => {
     return new Promise((resolve, reject)=>{
-      request.get(config.mirrorgateGetAnalyticViewsEndpoint,(err, res, body) => {
+      request.get(`${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics/analytic-views`,(err, res, body) => {
         if (err) {
           return reject(err);
         }
-        body = JSON.parse(body);
-        if(body.status >= 400) {
+
+        if(res.statusCode >= 400) {
           return reject({
-            statusCode: body.status,
-            statusMessage: body.error
+            statusCode: res.statusCode,
+            statusMessage: res.statusMessage
           });
         }
-        return resolve(body);
+
+        return resolve(JSON.parse(body));
       });
     });
   },
 
   sendResultsToMirrorgate: (results, viewId) => {
     return new Promise((resolve, reject)=>{
-      request.post(config.mirrorgatePostAnalyticViewsEndpoint,
+      request.post(`${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics`,
         {
           headers: {
             'content-type': 'application/json',
@@ -50,14 +57,15 @@ module.exports = {
           if (err) {
             return reject(err);
           }
-          body = JSON.parse(body);
-          if(body.status >= 400) {
+
+          if(res.statusCode >= 400) {
             return reject({
-              statusCode: body.status,
-              statusMessage: body.error
+              statusCode: res.statusCode,
+              statusMessage: res.statusMessage
             });
           }
-          return resolve(body);
+
+          return resolve(JSON.parse(body));
         });
     });
   }
@@ -69,12 +77,15 @@ function _createResponse(responses, viewId){
 
   let totalErrors = 0;
   let totalRequests = 0;
-  let totalHealthyChecks = 0;
+  let totalPositivieHealthyChecks = 0;
+  let totalZeroHealthyChecks = 0;
+  let responseTime;
 
   //Cloudwatch returns data with two minutes delay, so we adjust to that
   let totalErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let totalRequestsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let totalHealthyChecksDate = new Date(new Date().getTime() - 120 * 1000).getTime();
+  let responseTimeDate = new Date(new Date().getTime() - 120 * 1000).getTime();
 
   responses.forEach(elem => {
 
@@ -97,39 +108,33 @@ function _createResponse(responses, viewId){
     }
 
     if(elem.Label === 'HealthyHostCount' && elem.Datapoints &&  elem.Datapoints.length !== 0) {
-      totalHealthyChecks += elem.Datapoints[0].Sum;
+      elem.Datapoints.forEach(data => data.Sum > 0 ? totalPositivieHealthyChecks++ : totalZeroHealthyChecks++);
       totalHealthyChecksDate = new Date(elem.Datapoints[0].Timestamp).getTime();
       return;
     }
 
+    if(elem.Label === 'TargetResponseTime' && elem.Datapoints &&  elem.Datapoints.length !== 0){
+      responseTime = !responseTime ? elem.Datapoints[0].Average : Math.max(responseTime, elem.Datapoints[0].Average);
+      responseTimeDate = new Date(elem.Datapoints[0].Timestamp).getTime();
+      return;
+    }
   });
 
-  metrics.push({
+  let template = {
     viewId: viewId,
     platform: 'AWS',
-    name: 'errorsNumber',
-    value: totalErrors,
-    timestamp: totalErrorsDate,
-    collectorId: config.collectorId
-  });
+    collectorId: config.get('COLLECTOR_ID')
+  }
 
-  metrics.push({
-    viewId: viewId,
-    platform: 'AWS',
-    name: 'requestsNumber',
-    value: totalRequests,
-    timestamp: totalRequestsDate,
-    collectorId: config.collectorId
-  });
+  let availabilityRate = parseFloat((totalPositivieHealthyChecks * 100/(totalPositivieHealthyChecks + totalZeroHealthyChecks)).toFixed(2));
+  responseTime = parseFloat(responseTime.toFixed(2));
 
-  metrics.push({
-    viewId: viewId,
-    platform: 'AWS',
-    name: 'healthyChecks',
-    value: totalHealthyChecks,
-    timestamp: totalHealthyChecksDate,
-    collectorId: config.collectorId
-  });
+  metrics = [
+    { name: 'errorsNumber', value: totalErrors, timestamp: totalErrorsDate },
+    { name: 'requestsNumber', value: totalRequests, timestamp: totalRequestsDate },
+    { name: 'availabilityRate', value: availabilityRate, timestamp: totalHealthyChecksDate },
+    { name: 'responseTime', value: responseTime, timestamp: responseTimeDate }
+  ].map((m) => Object.assign({}, template, m));
 
   return metrics;
 }

@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-const metricNames = [
-  'HTTPCode_ELB_4XX_Count',
-  'HTTPCode_ELB_5XX_Count',
-  'HTTPCode_Target_5XX_Count',
-  'HTTPCode_Target_4XX_Count',
-  'RequestCount',
-  'HealthyHostCount'
-];
+const template = require('./metricsRequestTemplate.js').template;
 
-exports.metricNames = metricNames;
+const metrics = [
+  {MetricName: 'HTTPCode_ELB_4XX_Count'},
+  {MetricName: 'HTTPCode_ELB_5XX_Count'},
+  {MetricName: 'HTTPCode_Target_5XX_Count'},
+  {MetricName: 'HTTPCode_Target_4XX_Count'},
+  {MetricName: 'RequestCount'},
+  {MetricName: 'HealthyHostCount', Period: 60, needsTargetGroup: true},
+  {MetricName: 'TargetResponseTime', Statistics: ['Average']}
+].map((m) => Object.assign({}, template, m));
+
+exports.metrics = metrics;

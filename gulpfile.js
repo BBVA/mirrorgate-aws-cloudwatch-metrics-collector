@@ -16,9 +16,9 @@
 
 const gulp = require('gulp');
 const zip = require('gulp-zip');
- 
+
 gulp.task('package', () =>
-  gulp.src(['invoker.js', 'lambda.js', 'src*/**/*', 'node_modules*/**/*'],{cwd:'collector'})
+  gulp.src(['invoker.js', 'lambda.js', 'src*/**/*', 'node_modules*/**/*', 'config*/config.json'],{cwd:'collector'})
     .pipe(zip('mirrorgate-aws-cloudwatch-metrics-collector.zip'))
     .pipe(gulp.dest('build'))
 );
