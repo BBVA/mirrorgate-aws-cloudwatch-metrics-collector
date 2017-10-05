@@ -17,15 +17,12 @@
 const template = require('./metricsRequestTemplate.js').template;
 
 const metrics = [
-  Object.assign({}, template, { MetricName: 'HTTPCode_ELB_4XX_Count'}),
-  Object.assign({}, template, { MetricName: 'HTTPCode_ELB_5XX_Count'}),
-  Object.assign({}, template, { MetricName: 'HTTPCode_Target_4XX_Count'}),
-  Object.assign({}, template, { MetricName: 'HTTPCode_Target_5XX_Count'}),
-  Object.assign({}, template, { MetricName: 'RequestCount'}),
-  Object.assign({}, template, {
-    MetricName: 'HealthyHostCount',
-    Period: 60
-  })
-];
+  {MetricName: 'HTTPCode_ELB_4XX_Count'},
+  {MetricName: 'HTTPCode_ELB_5XX_Count'},
+  {MetricName: 'HTTPCode_Target_5XX_Count'},
+  {MetricName: 'HTTPCode_Target_4XX_Count'},
+  {MetricName: 'RequestCount'},
+  {MetricName: 'HealthyHostCount', Period: 60},
+].map((m) => Object.assign({}, template, m));
 
 exports.metrics = metrics;
