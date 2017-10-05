@@ -14,30 +14,35 @@
  * limitations under the License.
  */
 
-const config = require('./src/config.js');
-const metrics = require('./src/metrics/metrics.js');
-const template = require('./src/metrics/metricsRequestTemplate.js');
+const metrics = require('./src/metrics/metrics.js').metrics;
 const APICaller = require('./src/API/APICaller.js');
-var AWS = require('aws-sdk');
+const AWS = require('aws-sdk');
+const fs = require('fs');
+const path = require('path');
+const config = require('nconf');
+
 var sts = new AWS.STS();
 var cloudWatch;
 var elbv2;
+
+config.argv()
+  .env()
+  .file(path.resolve(__dirname, './config/config.json'));
 
 AWS.config.update({region:'eu-west-1'});
 
 function assumeAWSRole(accountId){
   var params = {
     DurationSeconds: 900,
-    RoleArn: `arn:aws:iam::${accountId}:role/${config.roleName}`,
+    RoleArn: `arn:aws:iam::${accountId}:role/${config.get('ROLE_NAME')}`,
     RoleSessionName: 'MirrorGate'
   };
   return sts.assumeRole(params).promise();
 }
 
-function addDimensions(template, metricName, loadBalancer, targetGroup){
-  var AWSBalancer = Object.assign({}, template);
+function addDimensions(metric, loadBalancer, targetGroup){
 
-  AWSBalancer.Dimensions =  [
+  metric.Dimensions =  [
     {
       "Name": "LoadBalancer",
       "Value": loadBalancer
@@ -48,17 +53,15 @@ function addDimensions(template, metricName, loadBalancer, targetGroup){
     }
   ];
 
-  AWSBalancer.MetricName = metricName;
-
-  return AWSBalancer;
+  return metric;
 }
 
 function createInput(ALBName, targetGroups){
   let metricInputs = [];
 
   targetGroups.forEach((tg) => {
-    metrics.metricNames.forEach(function(element){
-      metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(template.template, element, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`)).promise());
+    metrics.forEach((metric) => {
+      metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(metric, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`)).promise());
     });
   });
 
@@ -66,7 +69,7 @@ function createInput(ALBName, targetGroups){
 }
 
 function isAWSElement(listElement){
-  return listElement.includes(config.collectorPrefix);
+  return listElement.includes(config.get('COLLECTOR_PREFIX'));
 }
 
 function getMetrics(albName) {
@@ -92,7 +95,7 @@ function getMetrics(albName) {
                 data.TargetGroups
               ));
             })
-            .catch( err => console.error(`Error getting metrics from Amazon: ${JSON.stringify(err)}`))
+            .catch( err => console.error(`Error getting metrics from Amazon: ${err}`))
           );
       });
 
@@ -106,13 +109,12 @@ module.exports = {
     return APICaller
       .getAWSAnalyticsList()
       .then((analyticsList) => {
-
         analyticsList
           .filter(isAWSElement)
           .forEach( AWSElement => {
 
             //Get account id and ALB name if this exists
-            let cleanALB = AWSElement.trim().replace(config.collectorPrefix, '');
+            let cleanALB = AWSElement.trim().replace(config.get('COLLECTOR_PREFIX'), '');
             let accountId = cleanALB.split('/')[0];
             let albName = cleanALB.split('/')[1];
 
@@ -150,11 +152,11 @@ module.exports = {
                       .catch( err => console.error(`Error sending metrics to MirrorGate: ${JSON.stringify(err)}`));
                   });
               })
-              .catch( err => console.error(`Error getting metrics from Amazon: ${JSON.stringify(err)}`));
+              .catch( err => console.error(`Error getting metrics from Amazon: ${err}`));
 
           });
       })
-      .catch( err => console.error(`Error getting analystics list from MirrorGate: ${JSON.stringify(err)}`));
+      .catch( err => console.error(`Error getting analystics list from MirrorGate: ${err}`));
   },
 
 }

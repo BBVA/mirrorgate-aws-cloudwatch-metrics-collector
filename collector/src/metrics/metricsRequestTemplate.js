@@ -14,15 +14,21 @@
  * limitations under the License.
  */
 
-var config = require('../config.js');
+const fs = require('fs');
+const config = require('nconf');
+const path = require('path');
+
+config.argv()
+  .env()
+  .file(path.resolve(__dirname, '../../config/config.json'));
 
 var template = {
   Namespace: 'AWS/ApplicationELB',
   Period: 600,
-  
-  StartTime: new Date(new Date().getTime() - (60 * 1000 * config.timeLapse)),
+
+  StartTime: new Date(new Date().getTime() - (60 * 1000 * config.get('TIME_LAPSE'))),
   EndTime: new Date(),
-  
+
   Statistics: ['Sum']
 };
 
