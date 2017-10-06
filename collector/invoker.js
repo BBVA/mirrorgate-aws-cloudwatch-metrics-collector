@@ -62,16 +62,10 @@ function addDimensions(metric, loadBalancer, targetGroup){
 function createInput(ALBName, targetGroups){
   let metricInputs = [];
 
-  metrics.forEach((metric) => {
-    if(metric.needsTargetGroup) {
-      delete metric.needsTargetGroup ;
-      targetGroups.forEach((tg) => {
-        metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(metric, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`)).promise());
-      });
-    } else {
-      delete metric.needsTargetGroup;
-      metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(metric, ALBName)).promise());
-    }
+  targetGroups.forEach((tg) => {
+    metrics.forEach((metric) => {
+      metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(metric, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`)).promise());
+    });
   });
 
   return metricInputs;
