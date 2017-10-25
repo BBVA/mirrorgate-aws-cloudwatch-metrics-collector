@@ -127,7 +127,7 @@ function _createResponse(responses, viewId){
   }
 
   let availabilityRate = parseFloat((totalPositivieHealthyChecks * 100/(totalPositivieHealthyChecks + totalZeroHealthyChecks)).toFixed(2));
-  responseTime = parseFloat(responseTime.toFixed(2));
+  responseTime = responseTime ? parseFloat(responseTime.toFixed(2)) : undefined;
 
   metrics = [
     { name: 'errorsNumber', value: totalErrors, timestamp: totalErrorsDate },
