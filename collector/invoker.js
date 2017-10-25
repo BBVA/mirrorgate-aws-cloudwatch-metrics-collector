@@ -21,10 +21,6 @@ const fs = require('fs');
 const path = require('path');
 const config = require('nconf');
 
-var sts = new AWS.STS();
-var cloudWatch;
-var elbv2;
-
 config.argv()
   .env()
   .file(path.resolve(__dirname, './config/config.json'));
@@ -37,7 +33,7 @@ function assumeAWSRole(accountId){
     RoleArn: `arn:aws:iam::${accountId}:role/${config.get('ROLE_NAME')}`,
     RoleSessionName: 'MirrorGate'
   };
-  return sts.assumeRole(params).promise();
+  return new AWS.STS().assumeRole(params).promise();
 }
 
 function addDimensions(metric, loadBalancer, targetGroup){
@@ -59,7 +55,7 @@ function addDimensions(metric, loadBalancer, targetGroup){
   return metric;
 }
 
-function createInput(ALBName, targetGroups){
+function createInput(cloudWatch, ALBName, targetGroups){
   let metricInputs = [];
 
   targetGroups.forEach((tg) => {
@@ -75,7 +71,7 @@ function isAWSElement(listElement){
   return listElement.includes(config.get('COLLECTOR_PREFIX'));
 }
 
-function getMetrics(albName) {
+function getMetrics(albName, cloudWatch, elbv2) {
   return elbv2
     .describeLoadBalancers({
       Names: [
@@ -94,6 +90,7 @@ function getMetrics(albName) {
             .promise()
             .then( (data) => {
               return Promise.all(createInput(
+                cloudWatch,
                 lb.LoadBalancerArn.split('loadbalancer/')[1],
                 data.TargetGroups
               ));
@@ -124,7 +121,7 @@ module.exports = {
             assumeAWSRole(accountId)
               .then((element) => {
 
-                cloudWatch = new AWS.CloudWatch({
+                let cloudWatch = new AWS.CloudWatch({
                   credentials: {
                     accessKeyId: element.Credentials.AccessKeyId,
                     secretAccessKey: element.Credentials.SecretAccessKey,
@@ -132,7 +129,7 @@ module.exports = {
                   }
                 });
 
-                elbv2 = new AWS.ELBv2({
+                let elbv2 = new AWS.ELBv2({
                   credentials: {
                     accessKeyId: element.Credentials.AccessKeyId,
                     secretAccessKey: element.Credentials.SecretAccessKey,
@@ -140,7 +137,7 @@ module.exports = {
                   }
                 });
 
-                return getMetrics(albName)
+                return getMetrics(albName, cloudWatch, elbv2)
                   .then((results) => {
                     let metrics_combined = []
                     results.forEach((metrics) => {
