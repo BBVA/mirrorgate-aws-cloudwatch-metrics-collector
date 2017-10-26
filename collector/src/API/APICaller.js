@@ -79,7 +79,8 @@ function _createResponse(responses, viewId){
   let totalRequests = 0;
   let totalPositivieHealthyChecks = 0;
   let totalZeroHealthyChecks = 0;
-  let responseTime;
+  let responseTimeSampleCount = 0;
+  let responseTimeAccumulated = 0;
 
   //Cloudwatch returns data with two minutes delay, so we adjust to that
   let totalErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
@@ -114,7 +115,14 @@ function _createResponse(responses, viewId){
     }
 
     if(elem.Label === 'TargetResponseTime' && elem.Datapoints &&  elem.Datapoints.length !== 0){
-      responseTime = !responseTime ? elem.Datapoints[0].Average : Math.max(responseTime, elem.Datapoints[0].Average);
+      elem.Datapoints.forEach((data) => {
+        if (!data.SampleCount) {
+          return;
+        }
+        responseTimeSampleCount += data.SampleCount;
+        responseTimeAccumulated += data.Sum;
+
+      });
       responseTimeDate = new Date(elem.Datapoints[0].Timestamp).getTime();
       return;
     }
@@ -127,7 +135,7 @@ function _createResponse(responses, viewId){
   }
 
   let availabilityRate = parseFloat((totalPositivieHealthyChecks * 100/(totalPositivieHealthyChecks + totalZeroHealthyChecks)).toFixed(2));
-  responseTime = responseTime ? parseFloat(responseTime.toFixed(2)) : undefined;
+  let responseTime = responseTimeSampleCount ? parseFloat(responseTimeAccumulated/responseTimeSampleCount).toFixed(2) : undefined;
 
   metrics = [
     { name: 'errorsNumber', value: totalErrors, timestamp: totalErrorsDate },
