@@ -18,18 +18,20 @@ const fs = require('fs');
 const config = require('nconf');
 const path = require('path');
 
-config.argv()
-  .env()
-  .file(path.resolve(__dirname, '../../config/config.json'));
+exports.getTemplate = function () {
+  config.argv()
+    .env()
+    .file(path.resolve(__dirname, '../../config/config.json'));
 
-var template = {
-  Namespace: 'AWS/ApplicationELB',
-  Period: 600,
+  var template = {
+    Namespace: 'AWS/ApplicationELB',
+    Period: 600,
 
-  StartTime: new Date(new Date().getTime() - (60 * 1000 * config.get('TIME_LAPSE'))),
-  EndTime: new Date(),
+    StartTime: new Date(new Date().getTime() - (60 * 1000 * config.get('TIME_LAPSE'))),
+    EndTime: new Date(),
 
-  Statistics: ['Sum']
+    Statistics: ['Sum']
+  };
+
+  return template;
 };
-
-exports.template = template;
