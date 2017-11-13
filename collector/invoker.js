@@ -25,7 +25,7 @@ config.argv()
   .env()
   .file(path.resolve(__dirname, './config/config.json'));
 
-AWS.config.update({region:'eu-west-1'});
+AWS.config.update({region:config.get('AWS_REGION')});
 
 function assumeAWSRole(accountId){
   var params = {

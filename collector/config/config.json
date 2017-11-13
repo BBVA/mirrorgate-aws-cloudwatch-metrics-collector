@@ -3,5 +3,6 @@
   "MIRRORGATE_ENDPOINT": "http://localhost:8080/mirrorgate/",
   "COLLECTOR_PREFIX": "AWS/",
   "COLLECTOR_ID": "mirrorgate-aws-cloudwatch-metrics-collector",
-  "ROLE_NAME": "delegated-cloudwatch-metrics-role"
+  "ROLE_NAME": "delegated-cloudwatch-metrics-role",
+  "AWS_REGION": "eu-west-1"
 }
