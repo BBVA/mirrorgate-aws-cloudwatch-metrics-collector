@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-const metrics = require('./src/metrics/metrics.js').metrics;
+const Metrics = require('./src/metrics/metrics.js');
 const APICaller = require('./src/API/APICaller.js');
 const AWS = require('aws-sdk');
 const fs = require('fs');
@@ -25,7 +25,7 @@ config.argv()
   .env()
   .file(path.resolve(__dirname, './config/config.json'));
 
-AWS.config.update({region:'eu-west-1'});
+AWS.config.update({region:config.get('AWS_REGION')});
 
 function assumeAWSRole(accountId){
   var params = {
@@ -36,8 +36,10 @@ function assumeAWSRole(accountId){
   return new AWS.STS().assumeRole(params).promise();
 }
 
-function addDimensions(metric, loadBalancer, targetGroup){
-
+function addDimensions(_metric, loadBalancer, targetGroup){
+    
+  let metric = Object.assign({}, _metric);
+  
   metric.Dimensions =  []
 
   metric.Dimensions.push({
@@ -59,7 +61,7 @@ function createInput(cloudWatch, ALBName, targetGroups){
   let metricInputs = [];
 
   targetGroups.forEach((tg) => {
-    metrics.forEach((metric) => {
+    Metrics.getMetrics().forEach((metric) => {
       metricInputs.push(cloudWatch.getMetricStatistics(addDimensions(metric, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`)).promise());
     });
   });

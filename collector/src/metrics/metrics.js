@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-const template = require('./metricsRequestTemplate.js').template;
+const getTemplate = require('./metricsRequestTemplate.js').getTemplate;
 
 const metrics = [
   {MetricName: 'HTTPCode_ELB_4XX_Count'},
@@ -24,6 +24,8 @@ const metrics = [
   {MetricName: 'RequestCount'},
   {MetricName: 'HealthyHostCount', Period: 60},
   {MetricName: 'TargetResponseTime', Period: 60, Statistics: ['Sum', 'SampleCount']}
-].map((m) => Object.assign({}, template, m));
+];
 
-exports.metrics = metrics;
+exports.getMetrics = function () {
+  return metrics.map((m) => Object.assign({}, getTemplate(), m));
+};
