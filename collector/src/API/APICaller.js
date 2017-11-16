@@ -141,7 +141,7 @@ function _createResponse(responses, viewId){
     { name: 'errorsNumber', value: totalErrors, timestamp: totalErrorsDate },
     { name: 'requestsNumber', value: totalRequests, timestamp: totalRequestsDate },
     { name: 'availabilityRate', value: availabilityRate, timestamp: totalHealthyChecksDate },
-    { name: 'responseTime', value: responseTime, timestamp: responseTimeDate }
+    { name: 'responseTime', value: responseTime, timestamp: responseTimeDate, sampleSize: totalRequests }
   ].map((m) => Object.assign({}, template, m));
 
   return metrics;
