@@ -147,7 +147,7 @@ module.exports = {
                         metrics_combined.push(metric);
                       });
                     })
-
+                    
                     APICaller
                       .sendResultsToMirrorgate(metrics_combined, AWSElement)
                       .then( result => console.log(`Elements sent to MirrorGate: ${JSON.stringify(result, null, '  ')}`))

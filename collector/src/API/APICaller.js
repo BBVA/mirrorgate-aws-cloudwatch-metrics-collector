@@ -26,22 +26,21 @@ config.argv()
 module.exports = {
 
   getAWSAnalyticsList: () => {
-    return new Promise((resolve, reject)=>{
-      request.get(`${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics/analytic-views`,(err, res, body) => {
-        if (err) {
-          return reject(err);
-        }
+     return new Promise((resolve, reject)=>{
+       request.get(`${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics/analytic-views`,(err, res, body) => {
+         if (err) {
+           return reject(err);
+         }
+         if(res.statusCode >= 400) {
+           return reject({
+             statusCode: res.statusCode,
+             statusMessage: res.statusMessage
+           });
+         }
 
-        if(res.statusCode >= 400) {
-          return reject({
-            statusCode: res.statusCode,
-            statusMessage: res.statusMessage
-          });
-        }
-
-        return resolve(JSON.parse(body));
-      });
-    });
+         return resolve(JSON.parse(body));
+       });
+     });
   },
 
   sendResultsToMirrorgate: (results, viewId) => {
@@ -96,15 +95,23 @@ function _createResponse(responses, viewId){
        elem.Label === 'HTTPCode_Target_4XX_Count'){
 
         if(elem.Datapoints &&  elem.Datapoints.length !== 0){
-          totalErrors += elem.Datapoints[0].Sum;
-          totalErrorsDate = new Date(elem.Datapoints[0].Timestamp).getTime();
+          elem.Datapoints.forEach((data) => {
+            totalErrors += data.Sum;
+            if(data.Timestamp !== null ){
+              totalErrorsDate = new Date(data.Timestamp).getTime();
+            }
+          });
         }
         return;
     }
 
     if(elem.Label === 'RequestCount' && elem.Datapoints &&  elem.Datapoints.length !== 0){
-      totalRequests += elem.Datapoints[0].Sum;
-      totalRequestsDate = new Date(elem.Datapoints[0].Timestamp).getTime();
+      elem.Datapoints.forEach((data) => {
+        totalRequests += data.Sum;
+        if(data.Timestamp !== null ){
+          totalRequestsDate = new Date(data.Timestamp).getTime();
+        }
+      });
       return;
     }
 
@@ -138,10 +145,10 @@ function _createResponse(responses, viewId){
   let responseTime = responseTimeSampleCount ? parseFloat(responseTimeAccumulated/responseTimeSampleCount).toFixed(2) : undefined;
 
   metrics = [
-    { name: 'errorsNumber', value: totalErrors, timestamp: totalErrorsDate },
-    { name: 'requestsNumber', value: totalRequests, timestamp: totalRequestsDate },
-    { name: 'availabilityRate', value: availabilityRate, timestamp: totalHealthyChecksDate },
-    { name: 'responseTime', value: responseTime, timestamp: responseTimeDate, sampleSize: totalRequests }
+     { name: 'errorsNumber', value: totalErrors, timestamp: totalErrorsDate },
+     { name: 'requestsNumber', value: totalRequests, timestamp: totalRequestsDate },
+     { name: 'availabilityRate', value: availabilityRate, timestamp: totalHealthyChecksDate },
+     { name: 'responseTime', value: responseTime, timestamp: responseTimeDate, sampleSize: totalRequests }
   ].map((m) => Object.assign({}, template, m));
 
   return metrics;

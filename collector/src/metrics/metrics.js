@@ -22,8 +22,8 @@ const metrics = [
   {MetricName: 'HTTPCode_Target_5XX_Count'},
   {MetricName: 'HTTPCode_Target_4XX_Count'},
   {MetricName: 'RequestCount'},
-  {MetricName: 'HealthyHostCount', Period: 60},
-  {MetricName: 'TargetResponseTime', Period: 60, Statistics: ['Sum', 'SampleCount']}
+  {MetricName: 'HealthyHostCount'},
+  {MetricName: 'TargetResponseTime', Statistics: ['Sum', 'SampleCount']}
 ];
 
 exports.getMetrics = function () {

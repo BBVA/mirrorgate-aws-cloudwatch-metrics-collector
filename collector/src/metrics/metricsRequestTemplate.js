@@ -25,7 +25,7 @@ exports.getTemplate = function () {
 
   var template = {
     Namespace: 'AWS/ApplicationELB',
-    Period: 600,
+    Period: 60,
 
     StartTime: new Date(new Date().getTime() - (60 * 1000 * config.get('TIME_LAPSE'))),
     EndTime: new Date(),
