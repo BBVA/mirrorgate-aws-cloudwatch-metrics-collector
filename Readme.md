@@ -64,6 +64,7 @@ and a policy that allows that role to access the following resources
             "Action": [
                 "cloudwatch:getMetricStatistics",
                 "elasticloadbalancing:DescribeLoadBalancers",
+                "ce:GetCostAndUsage",
                 "elasticloadbalancing:DescribeTargetGroups"
             ],
             "Resource": [

@@ -4,5 +4,6 @@
   "COLLECTOR_PREFIX": "AWS/",
   "COLLECTOR_ID": "mirrorgate-aws-cloudwatch-metrics-collector",
   "ROLE_NAME": "delegated-cloudwatch-metrics-role",
-  "AWS_REGION": "eu-west-1"
+  "AWS_REGION": "eu-west-1",
+  "COST_FROM_DAYS_BEFORE": 30
 }
