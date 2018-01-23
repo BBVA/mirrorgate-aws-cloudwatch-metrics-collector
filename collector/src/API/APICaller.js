@@ -80,12 +80,14 @@ function _createResponse(responses, viewId){
   let totalZeroHealthyChecks = 0;
   let responseTimeSampleCount = 0;
   let responseTimeAccumulated = 0;
+  let infrastructureCost = 0;
 
   //Cloudwatch returns data with two minutes delay, so we adjust to that
   let totalErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let totalRequestsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let totalHealthyChecksDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let responseTimeDate = new Date(new Date().getTime() - 120 * 1000).getTime();
+  let infrastructureCostDate = new Date(new Date().getTime() - 120 * 1000).getTime();
 
   responses.forEach(elem => {
 
@@ -133,6 +135,11 @@ function _createResponse(responses, viewId){
       responseTimeDate = new Date(elem.Datapoints[0].Timestamp).getTime();
       return;
     }
+    if(elem.Label === 'InfrastructureCost'){
+      elem.Value.ResultsByTime && elem.Value.ResultsByTime.forEach((data) => {
+        infrastructureCost += parseFloat(data.Total.BlendedCost.Amount);
+      });
+    }
   });
 
   let template = {
@@ -148,7 +155,8 @@ function _createResponse(responses, viewId){
      { name: 'errorsNumber', value: totalErrors, timestamp: totalErrorsDate },
      { name: 'requestsNumber', value: totalRequests, timestamp: totalRequestsDate },
      { name: 'availabilityRate', value: availabilityRate, timestamp: totalHealthyChecksDate },
-     { name: 'responseTime', value: responseTime, timestamp: responseTimeDate, sampleSize: totalRequests }
+     { name: 'responseTime', value: responseTime, timestamp: responseTimeDate, sampleSize: totalRequests },
+     { name: 'infrastructureCost', value: infrastructureCost, timestamp: infrastructureCostDate }
   ].map((m) => Object.assign({}, template, m));
 
   return metrics;

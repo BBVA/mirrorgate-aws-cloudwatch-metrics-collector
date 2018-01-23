@@ -11,7 +11,7 @@
   "author": "Rodrigo Quintana <rodrigo.quintana.contractor@bbva.com>",
   "license": "",
   "dependencies": {
-    "aws-sdk": "^2.12.0",
+    "aws-sdk": "^2.185.0",
     "nconf": "^0.8.5",
     "request": "^2.83.0"
   }

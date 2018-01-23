@@ -37,9 +37,9 @@ function assumeAWSRole(accountId){
 }
 
 function addDimensions(_metric, loadBalancer, targetGroup){
-    
+
   let metric = Object.assign({}, _metric);
-  
+
   metric.Dimensions =  []
 
   metric.Dimensions.push({
@@ -73,7 +73,28 @@ function isAWSElement(listElement){
   return listElement.includes(config.get('COLLECTOR_PREFIX'));
 }
 
-function getMetrics(albName, cloudWatch, elbv2) {
+function getMetrics(albName, cloudWatch, elbv2, costExplorer) {
+  let promises = [];
+
+  promises.push(
+    costExplorer.getCostAndUsage({
+      Granularity: 'MONTHLY',
+      TimePeriod: {
+        Start: formatDate(new Date().setDate(new Date().getDate()-config.get('COST_FROM_DAYS_BEFORE'))),
+        End: formatDate(new Date()),
+      },
+      Metrics: ['BlendedCost']
+    })
+      .promise()
+      .then( (data) => {
+        return [{
+          Label: 'InfrastructureCost',
+          Value: data
+        }];
+      })
+      .catch( err => console.error(`Error getting infrastructure cost from Amazon: ${err}`))
+    );
+
   return elbv2
     .describeLoadBalancers({
       Names: [
@@ -82,7 +103,6 @@ function getMetrics(albName, cloudWatch, elbv2) {
     })
     .promise()
     .then( (data) => {
-      let promises = []
       data.LoadBalancers.forEach((lb) => {
         promises.push(
           elbv2
@@ -103,6 +123,18 @@ function getMetrics(albName, cloudWatch, elbv2) {
 
       return Promise.all(promises);
     })
+}
+
+function formatDate(date) {
+  var d = new Date(date),
+      month = '' + (d.getMonth() + 1),
+      day = '' + d.getDate(),
+      year = d.getFullYear();
+
+  if (month.length < 2) month = '0' + month;
+  if (day.length < 2) day = '0' + day;
+
+  return [year, month, day].join('-');
 }
 
 module.exports = {
@@ -139,19 +171,28 @@ module.exports = {
                   }
                 });
 
-                return getMetrics(albName, cloudWatch, elbv2)
+                let costExplorer = new AWS.CostExplorer({
+                  region: 'us-east-1', // Only available in region us-east-1 yet
+                  credentials: {
+                    accessKeyId: element.Credentials.AccessKeyId,
+                    secretAccessKey: element.Credentials.SecretAccessKey,
+                    sessionToken: element.Credentials.SessionToken,
+                  }
+                });
+
+                return getMetrics(albName, cloudWatch, elbv2, costExplorer)
                   .then((results) => {
-                    let metrics_combined = []
+                    let metrics_combined = [];
                     results.forEach((metrics) => {
-                      metrics.forEach((metric) => {
+                      metrics && metrics.forEach((metric) => {
                         metrics_combined.push(metric);
                       });
                     })
-                    
+
                     APICaller
                       .sendResultsToMirrorgate(metrics_combined, AWSElement)
                       .then( result => console.log(`Elements sent to MirrorGate: ${JSON.stringify(result, null, '  ')}`))
-                      .catch( err => console.error(`Error sending metrics to MirrorGate: ${err}`));
+                      .catch( err => console.error(`Error sending metrics to MirrorGate: ${JSON.stringify(err, null, '  ')}`));
                   });
               })
               .catch( err => console.error(`Error getting metrics from Amazon: ${err}`));
