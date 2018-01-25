@@ -27,8 +27,8 @@ exports.getTemplate = function () {
     Namespace: 'AWS/ApplicationELB',
     Period: 60,
 
-    StartTime: new Date(new Date().getTime() - (60 * 1000 * config.get('TIME_LAPSE'))),
-    EndTime: new Date(),
+    StartTime: new Date(new Date().getTime() - config.get('START_TIME_LAPSE')),
+    EndTime: new Date(new Date().getTime() - config.get('END_TIME_LAPSE')),
 
     Statistics: ['Sum']
   };

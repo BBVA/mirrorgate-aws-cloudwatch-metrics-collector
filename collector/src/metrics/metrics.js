@@ -22,7 +22,7 @@ const metrics = [
   {MetricName: 'HTTPCode_Target_5XX_Count'},
   {MetricName: 'HTTPCode_Target_4XX_Count'},
   {MetricName: 'RequestCount'},
-  {MetricName: 'HealthyHostCount'},
+  {MetricName: 'HealthyHostCount', Period: 600},
   {MetricName: 'TargetResponseTime', Statistics: ['Sum', 'SampleCount']}
 ];
 
