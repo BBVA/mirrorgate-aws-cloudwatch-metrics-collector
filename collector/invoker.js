@@ -76,7 +76,7 @@ function isAWSElement(listElement){
 function getMetrics(albName, cloudWatch, elbv2, costExplorer) {
   let promises = [];
 
-  promises.push(
+  costExplorer && promises.push(
     costExplorer.getCostAndUsage({
       Granularity: 'MONTHLY',
       TimePeriod: {
@@ -171,14 +171,16 @@ module.exports = {
                   }
                 });
 
-                let costExplorer = new AWS.CostExplorer({
-                  region: 'us-east-1', // Only available in region us-east-1 yet
-                  credentials: {
-                    accessKeyId: element.Credentials.AccessKeyId,
-                    secretAccessKey: element.Credentials.SecretAccessKey,
-                    sessionToken: element.Credentials.SessionToken,
-                  }
-                });
+                let costExplorer;
+                // TODO
+                // let costExplorer = new AWS.CostExplorer({
+                //   region: 'us-east-1', // Only available in region us-east-1 yet
+                //   credentials: {
+                //     accessKeyId: element.Credentials.AccessKeyId,
+                //     secretAccessKey: element.Credentials.SecretAccessKey,
+                //     sessionToken: element.Credentials.SessionToken,
+                //   }
+                // });
 
                 return getMetrics(albName, cloudWatch, elbv2, costExplorer)
                   .then((results) => {
