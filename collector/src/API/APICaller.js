@@ -43,6 +43,24 @@ module.exports = {
      });
   },
 
+  getCollectorMetrics: () => {
+    return new Promise((resolve, reject)=>{
+      request.get(`${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics?collectorId=${config.get('COLLECTOR_ID')}`,(err, res, body) => {
+        if (err) {
+          return reject(err);
+        }
+        if(res.statusCode >= 400) {
+          return reject({
+            statusCode: res.statusCode,
+            statusMessage: res.statusMessage
+          });
+        }
+
+        return resolve(JSON.parse(body));
+      });
+    });
+ },
+
   sendResultsToMirrorgate: (results, viewId) => {
     return new Promise((resolve, reject)=>{
       request.post(`${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics`,
