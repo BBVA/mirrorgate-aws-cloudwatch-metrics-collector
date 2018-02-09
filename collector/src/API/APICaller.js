@@ -99,6 +99,7 @@ function _createResponse(responses, viewId){
   let responseTimeSampleCount = 0;
   let responseTimeAccumulated = 0;
   let infrastructureCost = 0;
+  let infrastructureCostIsPresent = false;
 
   //Cloudwatch returns data with two minutes delay, so we adjust to that
   let totalErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
@@ -157,6 +158,7 @@ function _createResponse(responses, viewId){
       elem.Value.ResultsByTime && elem.Value.ResultsByTime.forEach((data) => {
         infrastructureCost += parseFloat(data.Total.BlendedCost.Amount);
       });
+      infrastructureCostIsPresent = true;
     }
   });
 
@@ -173,9 +175,13 @@ function _createResponse(responses, viewId){
      { name: 'errorsNumber', value: totalErrors, timestamp: totalErrorsDate },
      { name: 'requestsNumber', value: totalRequests, timestamp: totalRequestsDate },
      { name: 'availabilityRate', value: availabilityRate, timestamp: totalHealthyChecksDate },
-     { name: 'responseTime', value: responseTime, timestamp: responseTimeDate, sampleSize: totalRequests }
-    //  { name: 'infrastructureCost', value: infrastructureCost, timestamp: infrastructureCostDate }
-  ].map((m) => Object.assign({}, template, m));
+     { name: 'responseTime', value: responseTime, timestamp: responseTimeDate, sampleSize: totalRequests },
+  ];
+  if(infrastructureCostIsPresent){
+    metrics.push({ name: 'infrastructureCost', value: infrastructureCost, timestamp: infrastructureCostDate });
+  }
+  
+  updatedMetrics = metrics.map((m) => Object.assign({}, template, m));
 
-  return metrics;
+  return updatedMetrics;
 }

@@ -74,40 +74,51 @@ function isAWSElement(listElement){
 }
 
 function checkCostDaily(){
-  APICaller.getCollectorMetrics().then((metrics) => {
-    metrics
-      .filter((metric) => metric.name.localeCompare("infrastructureCost") === 0)
-      .forEach((metric) => {
-        var dayBefore = new Date().setDate(new Date().getDate()-1);
-        return metric.timestamp < dayBefore;
-      });
-  })
-  .catch( err => 
-    console.error(`Error getting collector metrics: ${err}`));
+  return new Promise((resolve, reject) => {
+    APICaller.getCollectorMetrics().then((metrics) => {
+      let infrastructureCostMetrics = metrics.filter((metric) => metric.name.localeCompare("infrastructureCost") === 0);
+      
+      if (infrastructureCostMetrics.length != 0){
+        infrastructureCostMetrics.forEach((metric) => {
+          var dayBefore = new Date().setDate(new Date().getDate()-1);
+          return resolve (metric.timestamp < dayBefore);
+        });
+      } else {
+        return resolve(true);
+      }
+    })
+    .catch( err => { 
+      console.error(`Error getting collector metrics: ${err}`);
+    });
+  });
 }
 
 function getMetrics(albName, cloudWatch, elbv2, costExplorer) {
   let promises = [];
 
-  costExplorer && checkCostDaily() && promises.push(
-    costExplorer.getCostAndUsage({
-      Granularity: 'MONTHLY',
-      TimePeriod: {
-        Start: formatDate(new Date().setDate(new Date().getDate()-config.get('COST_FROM_DAYS_BEFORE'))),
-        End: formatDate(new Date()),
-      },
-      Metrics: ['BlendedCost']
-    })
-      .promise()
-      .then( (data) => {
-        return [{
-          Label: 'InfrastructureCost',
-          Value: data
-        }];
-      })
-      .catch( err => console.error(`Error getting infrastructure cost from Amazon: ${err}`))
-    );
-
+  checkCostDaily().then((checkCost) => {
+    if(checkCost){
+      promises.push(
+        costExplorer.getCostAndUsage({
+          Granularity: 'MONTHLY',
+          TimePeriod: {
+            Start: formatDate(new Date().setDate(new Date().getDate()-config.get('COST_FROM_DAYS_BEFORE'))),
+            End: formatDate(new Date()),
+          },
+          Metrics: ['BlendedCost']
+        })
+          .promise()
+          .then( (data) => {
+            return [{
+              Label: 'InfrastructureCost',
+              Value: data
+            }];
+          })
+          .catch( err => console.error(`Error getting infrastructure cost from Amazon: ${err}`))
+        );
+    }
+  });
+  
   return elbv2
     .describeLoadBalancers({
       Names: [
@@ -135,7 +146,7 @@ function getMetrics(albName, cloudWatch, elbv2, costExplorer) {
       });
 
       return Promise.all(promises);
-    })
+    });
 }
 
 function formatDate(date) {
