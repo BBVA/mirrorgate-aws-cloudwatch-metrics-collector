@@ -73,28 +73,52 @@ function isAWSElement(listElement){
   return listElement.includes(config.get('COLLECTOR_PREFIX'));
 }
 
+function checkCostDaily(){
+  return new Promise((resolve, reject) => {
+    APICaller.getCollectorMetrics().then((metrics) => {
+      let infrastructureCostMetrics = metrics.filter((metric) => metric.name.localeCompare("infrastructureCost") === 0);
+      
+      if (infrastructureCostMetrics.length != 0){
+        infrastructureCostMetrics.forEach((metric) => {
+          var dayBefore = new Date().setDate(new Date().getDate()-1);
+          return resolve (metric.timestamp < dayBefore);
+        });
+      } else {
+        return resolve(true);
+      }
+    })
+    .catch( err => { 
+      console.error(`Error getting collector metrics: ${err}`);
+    });
+  });
+}
+
 function getMetrics(albName, cloudWatch, elbv2, costExplorer) {
   let promises = [];
 
-  costExplorer && promises.push(
-    costExplorer.getCostAndUsage({
-      Granularity: 'MONTHLY',
-      TimePeriod: {
-        Start: formatDate(new Date().setDate(new Date().getDate()-config.get('COST_FROM_DAYS_BEFORE'))),
-        End: formatDate(new Date()),
-      },
-      Metrics: ['BlendedCost']
-    })
-      .promise()
-      .then( (data) => {
-        return [{
-          Label: 'InfrastructureCost',
-          Value: data
-        }];
-      })
-      .catch( err => console.error(`Error getting infrastructure cost from Amazon: ${err}`))
-    );
-
+  checkCostDaily().then((checkCost) => {
+    if(checkCost){
+      promises.push(
+        costExplorer.getCostAndUsage({
+          Granularity: 'MONTHLY',
+          TimePeriod: {
+            Start: formatDate(new Date().setDate(new Date().getDate()-config.get('COST_FROM_DAYS_BEFORE'))),
+            End: formatDate(new Date()),
+          },
+          Metrics: ['BlendedCost']
+        })
+          .promise()
+          .then( (data) => {
+            return [{
+              Label: 'InfrastructureCost',
+              Value: data
+            }];
+          })
+          .catch( err => console.error(`Error getting infrastructure cost from Amazon: ${err}`))
+        );
+    }
+  });
+  
   return elbv2
     .describeLoadBalancers({
       Names: [
@@ -122,7 +146,7 @@ function getMetrics(albName, cloudWatch, elbv2, costExplorer) {
       });
 
       return Promise.all(promises);
-    })
+    });
 }
 
 function formatDate(date) {
@@ -171,16 +195,14 @@ module.exports = {
                   }
                 });
 
-                let costExplorer;
-                // TODO
-                // let costExplorer = new AWS.CostExplorer({
-                //   region: 'us-east-1', // Only available in region us-east-1 yet
-                //   credentials: {
-                //     accessKeyId: element.Credentials.AccessKeyId,
-                //     secretAccessKey: element.Credentials.SecretAccessKey,
-                //     sessionToken: element.Credentials.SessionToken,
-                //   }
-                // });
+                let costExplorer = new AWS.CostExplorer({
+                  region: 'us-east-1', // Only available in region us-east-1 yet
+                  credentials: {
+                    accessKeyId: element.Credentials.AccessKeyId,
+                    secretAccessKey: element.Credentials.SecretAccessKey,
+                    sessionToken: element.Credentials.SessionToken,
+                  }
+                });
 
                 return getMetrics(albName, cloudWatch, elbv2, costExplorer)
                   .then((results) => {
@@ -201,7 +223,7 @@ module.exports = {
 
           });
       })
-      .catch( err => console.error(`Error getting analystics list from MirrorGate: ${JSON.stringify(err, null, '  ')}`));
+      .catch( err => console.error(`Error getting analytics list from MirrorGate: ${JSON.stringify(err, null, '  ')}`));
   },
 
-}
+};
