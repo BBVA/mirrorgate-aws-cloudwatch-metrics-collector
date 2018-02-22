@@ -73,10 +73,10 @@ function isAWSElement(listElement){
   return listElement.includes(config.get('COLLECTOR_PREFIX'));
 }
 
-function checkCostDaily(){
+function checkCostDaily(AWSElement){
   return new Promise((resolve, reject) => {
     APICaller.getCollectorMetrics().then((metrics) => {
-      let infrastructureCostMetrics = metrics.filter((metric) => metric.name.localeCompare("infrastructureCost") === 0);
+      let infrastructureCostMetrics = metrics.filter((metric) => metric.name.localeCompare("infrastructureCost") === 0 && metric.viewId.localeCompare(AWSElement) === 0);
       
       if (infrastructureCostMetrics.length != 0){
         infrastructureCostMetrics.forEach((metric) => {
@@ -93,10 +93,10 @@ function checkCostDaily(){
   });
 }
 
-function getMetrics(albName, cloudWatch, elbv2, costExplorer) {
+function getMetrics(AWSElement, albName, cloudWatch, elbv2, costExplorer) {
   let promises = [];
 
-  checkCostDaily().then((checkCost) => {
+  checkCostDaily(AWSElement).then((checkCost) => {
     if(checkCost){
       promises.push(
         costExplorer.getCostAndUsage({
@@ -204,7 +204,7 @@ module.exports = {
                   }
                 });
 
-                return getMetrics(albName, cloudWatch, elbv2, costExplorer)
+                return getMetrics(AWSElement, albName, cloudWatch, elbv2, costExplorer)
                   .then((results) => {
                     let metrics_combined = [];
                     results.forEach((metrics) => {

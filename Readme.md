@@ -1,4 +1,4 @@
-# MirrorGate CLoudwatch Metrics Collector
+# MirrorGate Cloudwatch Metrics Collector
 
 ![MirrorGate](media/images/logo-mirrorgate.png)
 
@@ -90,7 +90,7 @@ First install dependencies
 You need to install AWS CLI and configure it with your user. Then you can assume _delegated-cloudwatch-metrics-role_
 in your local machine with the following command:
 ```
-aws sts --profile {local_profile} --role-arn arn:aws:iam::{Destination_AWS_account_number}:role/delegated-cloudwatch-metrics-role --role-session-name test_delegated
+aws sts assume-role --profile {local_profile} --role-arn arn:aws:iam::{Destination_AWS_account_number}:role/delegated-cloudwatch-metrics-role --role-session-name test_delegated
 ```
 
 Then run `local.js` with npm
