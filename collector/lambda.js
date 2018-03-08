@@ -16,9 +16,32 @@
 
 const CloudwatchInvoker = require('./invoker.js');
 
+const config = require('nconf');
+const path = require('path');
+
+config.argv()
+  .env()
+  .file(path.resolve(__dirname, 'config/config.json'));
+
 exports.handler = (event, context) => {
-  
+
     context.callbackWaitsForEmptyEventLoop = false;
 
-    CloudwatchInvoker.cloudWatchInvoker();
+    if(config.get('S3_BUCKET_NAME') && config.get('S3_BUCKET_KEY')) {
+        let s3 = new AWS.S3();
+        s3.getObject({
+          Bucket: config.get('S3_BUCKET_NAME'),
+          Key: config.get('S3_BUCKET_KEY')
+        }).promise()
+          .then((data) => {
+            data = JSON.parse(data.Body);
+            config.set('MIRRORGATE_USER', data.MIRRORGATE_USER);
+            config.set('MIRRORGATE_PASSWORD', data.MIRRORGATE_PASSWORD);
+            CloudwatchInvoker.cloudWatchInvoker();
+          })
+          .catch( err => console.error(`Error: ${JSON.stringify(err)}`));
+    } else {
+        CloudwatchInvoker.cloudWatchInvoker();
+    }
+
 };

@@ -77,7 +77,7 @@ function checkCostDaily(AWSElement){
   return new Promise((resolve, reject) => {
     APICaller.getCollectorMetrics().then((metrics) => {
       let infrastructureCostMetrics = metrics.filter((metric) => metric.name.localeCompare("infrastructureCost") === 0 && metric.viewId.localeCompare(AWSElement) === 0);
-      
+
       if (infrastructureCostMetrics.length != 0){
         infrastructureCostMetrics.forEach((metric) => {
           var dayBefore = new Date().setDate(new Date().getDate()-1);
@@ -87,7 +87,7 @@ function checkCostDaily(AWSElement){
         return resolve(true);
       }
     })
-    .catch( err => { 
+    .catch( err => {
       console.error(`Error getting collector metrics: ${err}`);
     });
   });
@@ -118,7 +118,7 @@ function getMetrics(AWSElement, albName, cloudWatch, elbv2, costExplorer) {
         );
     }
   });
-  
+
   return elbv2
     .describeLoadBalancers({
       Names: [
