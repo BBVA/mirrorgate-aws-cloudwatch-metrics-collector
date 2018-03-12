@@ -23,9 +23,20 @@ const metrics = [
   {MetricName: 'HTTPCode_Target_4XX_Count'},
   {MetricName: 'RequestCount'},
   {MetricName: 'HealthyHostCount', Period: 600},
-  {MetricName: 'TargetResponseTime', Statistics: ['Sum', 'SampleCount']}
+  {MetricName: 'TargetResponseTime', Statistics: ['Sum', 'SampleCount']},
+];
+
+const gatewayMetrics = [
+  {MetricName: '4XXError', Namespace: 'AWS/ApiGateway'},
+  {MetricName: '5XXError', Namespace: 'AWS/ApiGateway'},
+  {MetricName: 'Count', Namespace: 'AWS/ApiGateway'},
+  {MetricName: 'Latency',Namespace: 'AWS/ApiGateway', Statistics:['Sum', 'SampleCount']},  
 ];
 
 exports.getMetrics = function () {
   return metrics.map((m) => Object.assign({}, getTemplate(), m));
+};
+
+exports.getGatewayMetrics = function () {
+  return gatewayMetrics.map((m) => Object.assign({}, getTemplate(), m));
 };

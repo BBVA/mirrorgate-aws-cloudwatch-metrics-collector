@@ -40,7 +40,7 @@ module.exports = {
 
          return resolve(JSON.parse(body));
        });
-     });
+    });   
   },
 
   getCollectorMetrics: () => {
@@ -113,7 +113,9 @@ function _createResponse(responses, viewId){
     if(elem.Label === 'HTTPCode_ELB_4XX_Count' ||
        elem.Label === 'HTTPCode_ELB_5XX_Count' ||
        elem.Label === 'HTTPCode_Target_5XX_Count' ||
-       elem.Label === 'HTTPCode_Target_4XX_Count'){
+       elem.Label === 'HTTPCode_Target_4XX_Count' ||
+       elem.label === '4XXError' ||
+       elem.label === '5XXError'){
 
         if(elem.Datapoints &&  elem.Datapoints.length !== 0){
           elem.Datapoints.forEach((data) => {
@@ -126,7 +128,8 @@ function _createResponse(responses, viewId){
         return;
     }
 
-    if(elem.Label === 'RequestCount' && elem.Datapoints &&  elem.Datapoints.length !== 0){
+    if((elem.Label === 'RequestCount' || elem.label === 'Count') 
+        && elem.Datapoints &&  elem.Datapoints.length !== 0){
       elem.Datapoints.forEach((data) => {
         totalRequests += data.Sum;
         if(data.Timestamp !== null ){
@@ -142,13 +145,13 @@ function _createResponse(responses, viewId){
       return;
     }
 
-    if(elem.Label === 'TargetResponseTime' && elem.Datapoints &&  elem.Datapoints.length !== 0){
+    if((elem.Label === 'TargetResponseTime' || elem.label === 'Latency') && elem.Datapoints &&  elem.Datapoints.length !== 0){
       elem.Datapoints.forEach((data) => {
         if (!data.SampleCount) {
           return;
         }
         responseTimeSampleCount += data.SampleCount;
-        responseTimeAccumulated += data.Sum;
+        elem.label === 'Latency' ? responseTimeAccumulated += (data.Sum / 1000) : responseTimeAccumulated += data.Sum;// Latency comes in milliseconds while TargetResponseTime comes in Seconds
 
       });
       responseTimeDate = new Date(elem.Datapoints[0].Timestamp).getTime();
