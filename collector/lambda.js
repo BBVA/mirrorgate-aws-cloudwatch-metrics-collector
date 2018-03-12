@@ -15,6 +15,7 @@
  */
 
 const CloudwatchInvoker = require('./invoker.js');
+const AWS = require('aws-sdk');
 
 const config = require('nconf');
 const path = require('path');
