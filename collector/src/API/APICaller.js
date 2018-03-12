@@ -23,11 +23,13 @@ config.argv()
   .env()
   .file(path.resolve(__dirname, '../../config/config.json'));
 
-let auth = new Buffer(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
 
 module.exports = {
 
   getAWSAnalyticsList: () => {
+
+    let auth = new Buffer(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
+
     return new Promise((resolve, reject)=>{
       request( {
         url: `${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics/analytic-views`,
@@ -52,6 +54,9 @@ module.exports = {
   },
 
   getCollectorMetrics: () => {
+
+    let auth = new Buffer(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
+
     return new Promise((resolve, reject)=>{
       request( {
         url: `${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics?collectorId=${config.get('COLLECTOR_ID')}`,
@@ -76,6 +81,9 @@ module.exports = {
  },
 
   sendResultsToMirrorgate: (results, viewId) => {
+
+    let auth = new Buffer(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
+
     return new Promise((resolve, reject)=>{
       request.post(`${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics`,
         {
