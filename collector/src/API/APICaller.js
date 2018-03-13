@@ -23,29 +23,48 @@ config.argv()
   .env()
   .file(path.resolve(__dirname, '../../config/config.json'));
 
+
 module.exports = {
 
   getAWSAnalyticsList: () => {
-     return new Promise((resolve, reject)=>{
-       request.get(`${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics/analytic-views`,(err, res, body) => {
-         if (err) {
-           return reject(err);
-         }
-         if(res.statusCode >= 400) {
-           return reject({
-             statusCode: res.statusCode,
-             statusMessage: res.statusMessage
-           });
-         }
 
-         return resolve(JSON.parse(body));
-       });
-     });
+    let auth = new Buffer(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
+
+    return new Promise((resolve, reject)=>{
+      request( {
+        url: `${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics/analytic-views`,
+        headers: {
+          'content-type': 'application/json',
+          'Authorization' : `Basic ${auth}`
+        }
+      }, (err, res, body) => {
+        if (err) {
+          return reject(err);
+        }
+        if(res.statusCode >= 400) {
+          return reject({
+            statusCode: res.statusCode,
+            statusMessage: res.statusMessage
+          });
+        }
+
+        return resolve(JSON.parse(body));
+      });
+    });
   },
 
   getCollectorMetrics: () => {
+
+    let auth = new Buffer(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
+
     return new Promise((resolve, reject)=>{
-      request.get(`${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics?collectorId=${config.get('COLLECTOR_ID')}`,(err, res, body) => {
+      request( {
+        url: `${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics?collectorId=${config.get('COLLECTOR_ID')}`,
+        headers: {
+          'content-type': 'application/json',
+          'Authorization' : `Basic ${auth}`
+        }
+      }, (err, res, body) => {
         if (err) {
           return reject(err);
         }
@@ -62,11 +81,15 @@ module.exports = {
  },
 
   sendResultsToMirrorgate: (results, viewId) => {
+
+    let auth = new Buffer(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
+
     return new Promise((resolve, reject)=>{
       request.post(`${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics`,
         {
           headers: {
             'content-type': 'application/json',
+            'Authorization' : `Basic ${auth}`
           },
           body: JSON.stringify(_createResponse(results, viewId))
         },
@@ -113,7 +136,9 @@ function _createResponse(responses, viewId){
     if(elem.Label === 'HTTPCode_ELB_4XX_Count' ||
        elem.Label === 'HTTPCode_ELB_5XX_Count' ||
        elem.Label === 'HTTPCode_Target_5XX_Count' ||
-       elem.Label === 'HTTPCode_Target_4XX_Count'){
+       elem.Label === 'HTTPCode_Target_4XX_Count' ||
+       elem.label === '4XXError' ||
+       elem.label === '5XXError'){
 
         if(elem.Datapoints &&  elem.Datapoints.length !== 0){
           elem.Datapoints.forEach((data) => {
@@ -126,7 +151,8 @@ function _createResponse(responses, viewId){
         return;
     }
 
-    if(elem.Label === 'RequestCount' && elem.Datapoints &&  elem.Datapoints.length !== 0){
+    if((elem.Label === 'RequestCount' || elem.label === 'Count') 
+        && elem.Datapoints &&  elem.Datapoints.length !== 0){
       elem.Datapoints.forEach((data) => {
         totalRequests += data.Sum;
         if(data.Timestamp !== null ){
@@ -142,13 +168,13 @@ function _createResponse(responses, viewId){
       return;
     }
 
-    if(elem.Label === 'TargetResponseTime' && elem.Datapoints &&  elem.Datapoints.length !== 0){
+    if((elem.Label === 'TargetResponseTime' || elem.label === 'Latency') && elem.Datapoints &&  elem.Datapoints.length !== 0){
       elem.Datapoints.forEach((data) => {
         if (!data.SampleCount) {
           return;
         }
         responseTimeSampleCount += data.SampleCount;
-        responseTimeAccumulated += data.Sum;
+        elem.label === 'Latency' ? responseTimeAccumulated += (data.Sum / 1000) : responseTimeAccumulated += data.Sum;// Latency comes in milliseconds while TargetResponseTime comes in Seconds
 
       });
       responseTimeDate = new Date(elem.Datapoints[0].Timestamp).getTime();
@@ -180,7 +206,7 @@ function _createResponse(responses, viewId){
   if(infrastructureCostIsPresent){
     metrics.push({ name: 'infrastructureCost', value: infrastructureCost, timestamp: infrastructureCostDate });
   }
-  
+
   updatedMetrics = metrics.map((m) => Object.assign({}, template, m));
 
   return updatedMetrics;

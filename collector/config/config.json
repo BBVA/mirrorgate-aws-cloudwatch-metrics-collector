@@ -2,6 +2,8 @@
   "START_TIME_LAPSE": 61000,
   "END_TIME_LAPSE": 1000,
   "MIRRORGATE_ENDPOINT": "http://localhost:8080/mirrorgate/",
+  "MIRRORGATE_USER": null,
+  "MIRRORGATE_PASSWORD": null,
   "COLLECTOR_PREFIX": "AWS/",
   "COLLECTOR_ID": "mirrorgate-aws-cloudwatch-metrics-collector",
   "ROLE_NAME": "delegated-cloudwatch-metrics-role",

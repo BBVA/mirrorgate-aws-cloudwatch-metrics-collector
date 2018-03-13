@@ -62,6 +62,7 @@ and a policy that allows that role to access the following resources
         {
             "Effect": "Allow",
             "Action": [
+                "apigateway:GET",
                 "cloudwatch:getMetricStatistics",
                 "elasticloadbalancing:DescribeLoadBalancers",
                 "ce:GetCostAndUsage",
@@ -119,4 +120,4 @@ or with npm
 npm run package
 ```
 
-Create a lambda with runtime Node.js 6.10 or grater and folowing handler `lambda.handler`. Note it will execute only once, so you will have to use a timed trigger to execute it eventually.
+Create a lambda with runtime Node.js 6.10 or grater and following handler `lambda.handler`. Note it will execute only once, so you will have to use a timed trigger to execute it eventually.
