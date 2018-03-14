@@ -13,16 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 const APICaller = require('../API/APICaller.js');
 const Metrics = require('../metrics/metrics.js');
 const config = require('nconf');
+const path = require('path');
+
+config.argv()
+  .env()
+  .file(path.resolve(__dirname, '../../config/config.json'));
 
 function _checkCostDaily(AWSElement){
   return new Promise((resolve, reject) => {
     APICaller.getCollectorMetrics().then((metrics) => {
       let infrastructureCostMetrics = metrics.filter((metric) => metric.name.localeCompare("infrastructureCost") === 0 && metric.viewId.localeCompare(AWSElement) === 0);
-      
+
       if (infrastructureCostMetrics.length != 0){
         infrastructureCostMetrics.forEach((metric) => {
           var dayBefore = new Date().setDate(new Date().getDate()-1);
@@ -32,7 +36,7 @@ function _checkCostDaily(AWSElement){
         return resolve(true);
       }
     })
-    .catch( err => { 
+    .catch( err => {
       console.error(`Error getting collector metrics: ${err}`);
     });
   });
@@ -94,7 +98,7 @@ function _createAPIGatewayInput(cloudWatch, APIDescriptions){
       });
     });
   }
-  
+
   return metricInputs;
 }
 
@@ -157,7 +161,7 @@ module.exports = {
               ));
             })
             .catch( err => console.error(`Error getting metrics from ELB: ${err}`))
-          );     
+          );
       });
       return Promise.all(elbv2Array);
     });
@@ -172,5 +176,3 @@ module.exports = {
   },
 
 };
-
-

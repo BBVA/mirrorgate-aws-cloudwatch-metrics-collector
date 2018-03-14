@@ -18,11 +18,11 @@ const fs = require('fs');
 const config = require('nconf');
 const path = require('path');
 
-exports.getTemplate = function () {
-  config.argv()
-    .env()
-    .file(path.resolve(__dirname, '../../config/config.json'));
+config.argv()
+  .env()
+  .file(path.resolve(__dirname, '../../config/config.json'));
 
+exports.getTemplate = function () {
   var template = {
     Namespace: 'AWS/ApplicationELB',
     Period: 60,

@@ -44,9 +44,9 @@ function isAWSElement(listElement){
 function getMetrics(AWSElement, albName, cloudWatch, elbv2, costExplorer, apiGateway) {
   let promises = [];
 
-  promises.push(PromisesBuilder.buildCostExplorerPromise(AWSElement, costExplorer)); 
-  promises.push(PromisesBuilder.buildElbv2Promise(elbv2, albName, cloudWatch)); 
-  promises.push(PromisesBuilder.buildAPIGatewayPromise(cloudWatch, apiGateway)); 
+  promises.push(PromisesBuilder.buildCostExplorerPromise(AWSElement, costExplorer));
+  promises.push(PromisesBuilder.buildElbv2Promise(elbv2, albName, cloudWatch));
+  promises.push(PromisesBuilder.buildAPIGatewayPromise(cloudWatch, apiGateway));
 
   return Promise.all(promises);
 }

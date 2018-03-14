@@ -23,7 +23,6 @@ config.argv()
   .env()
   .file(path.resolve(__dirname, '../../config/config.json'));
 
-
 module.exports = {
 
   getAWSAnalyticsList: () => {
@@ -78,7 +77,7 @@ module.exports = {
         return resolve(JSON.parse(body));
       });
     });
- },
+  },
 
   sendResultsToMirrorgate: (results, viewId) => {
 
@@ -151,7 +150,7 @@ function _createResponse(responses, viewId){
         return;
     }
 
-    if((elem.Label === 'RequestCount' || elem.label === 'Count') 
+    if((elem.Label === 'RequestCount' || elem.label === 'Count')
         && elem.Datapoints &&  elem.Datapoints.length !== 0){
       elem.Datapoints.forEach((data) => {
         totalRequests += data.Sum;
