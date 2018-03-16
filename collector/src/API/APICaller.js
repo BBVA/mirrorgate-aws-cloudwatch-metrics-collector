@@ -132,14 +132,18 @@ function _createResponse(responses, viewId){
 
   responses.forEach(elem => {
 
-    if(elem.Label === 'HTTPCode_ELB_4XX_Count' ||
+    if(elem.Label === 'HTTPCode_ELB_4XX' ||
+       elem.Label === 'HTTPCode_ELB_5XX' ||
+       elem.Label === 'HTTPCode_Backend_4XX' ||
+       elem.Label === 'HTTPCode_Backend_5XX' ||
+       elem.Label === 'HTTPCode_ELB_4XX_Count' ||
        elem.Label === 'HTTPCode_ELB_5XX_Count' ||
        elem.Label === 'HTTPCode_Target_5XX_Count' ||
        elem.Label === 'HTTPCode_Target_4XX_Count' ||
-       elem.label === '4XXError' ||
-       elem.label === '5XXError'){
+       elem.Label === '4XXError' ||
+       elem.Label === '5XXError'){
 
-        if(elem.Datapoints &&  elem.Datapoints.length !== 0){
+        if(elem.Datapoints && elem.Datapoints.length !== 0){
           elem.Datapoints.forEach((data) => {
             totalErrors += data.Sum;
             if(data.Timestamp !== null ){
@@ -150,7 +154,7 @@ function _createResponse(responses, viewId){
         return;
     }
 
-    if((elem.Label === 'RequestCount' || elem.label === 'Count')
+    if((elem.Label === 'RequestCount' || elem.Label === 'Count')
         && elem.Datapoints &&  elem.Datapoints.length !== 0){
       elem.Datapoints.forEach((data) => {
         totalRequests += data.Sum;
@@ -161,20 +165,19 @@ function _createResponse(responses, viewId){
       return;
     }
 
-    if(elem.Label === 'HealthyHostCount' && elem.Datapoints &&  elem.Datapoints.length !== 0) {
+    if(elem.Label === 'HealthyHostCount' && elem.Datapoints && elem.Datapoints.length !== 0) {
       elem.Datapoints.forEach(data => data.Sum > 0 ? totalPositivieHealthyChecks++ : totalZeroHealthyChecks++);
       totalHealthyChecksDate = new Date(elem.Datapoints[0].Timestamp).getTime();
       return;
     }
 
-    if((elem.Label === 'TargetResponseTime' || elem.label === 'Latency') && elem.Datapoints &&  elem.Datapoints.length !== 0){
+    if((elem.Label === 'TargetResponseTime' || elem.Label === 'Latency') && elem.Datapoints &&  elem.Datapoints.length !== 0){
       elem.Datapoints.forEach((data) => {
         if (!data.SampleCount) {
           return;
         }
         responseTimeSampleCount += data.SampleCount;
-        elem.label === 'Latency' ? responseTimeAccumulated += (data.Sum / 1000) : responseTimeAccumulated += data.Sum;// Latency comes in milliseconds while TargetResponseTime comes in Seconds
-
+        data.Unit === 'Milliseconds' ? responseTimeAccumulated += (data.Sum / 1000) : responseTimeAccumulated += data.Sum;
       });
       responseTimeDate = new Date(elem.Datapoints[0].Timestamp).getTime();
       return;

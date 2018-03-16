@@ -41,11 +41,12 @@ function isAWSElement(listElement){
   return listElement.includes(config.get('COLLECTOR_PREFIX'));
 }
 
-function getMetrics(AWSElement, albName, cloudWatch, elbv2, costExplorer, apiGateway) {
+function getMetrics(AWSElement, lbName, cloudWatch, elb, elbv2, costExplorer, apiGateway) {
   let promises = [];
 
   promises.push(PromisesBuilder.buildCostExplorerPromise(AWSElement, costExplorer));
-  promises.push(PromisesBuilder.buildElbv2Promise(elbv2, albName, cloudWatch));
+  promises.push(PromisesBuilder.buildLBPromise(elb, lbName, cloudWatch));
+  promises.push(PromisesBuilder.buildElbv2Promise(elbv2, lbName, cloudWatch));
   promises.push(PromisesBuilder.buildAPIGatewayPromise(cloudWatch, apiGateway));
 
   return Promise.all(promises);
@@ -62,9 +63,9 @@ module.exports = {
           .forEach( AWSElement => {
 
             //Get account id and ALB name if this exists
-            let cleanALB = AWSElement.trim().replace(config.get('COLLECTOR_PREFIX'), '');
-            let accountId = cleanALB.split('/')[0];
-            let albName = cleanALB.split('/')[1];
+            let cleanLB = AWSElement.trim().replace(config.get('COLLECTOR_PREFIX'), '');
+            let accountId = cleanLB.split('/')[0];
+            let lbName = cleanLB.split('/')[1];
 
             assumeAWSRole(accountId)
               .then((element) => {
@@ -74,6 +75,14 @@ module.exports = {
                     accessKeyId: element.Credentials.AccessKeyId,
                     secretAccessKey: element.Credentials.SecretAccessKey,
                     sessionToken: element.Credentials.SessionToken,
+                  }
+                });
+
+                let elb = new AWS.ELB({
+                  credentials: {
+                    accessKeyId: element.Credentials.AccessKeyId,
+                    secretAccessKey: element.Credentials.SecretAccessKey,
+                    sessionToken: element.Credentials.SessionToken
                   }
                 });
 
@@ -102,7 +111,7 @@ module.exports = {
                   }
                 });
 
-                return getMetrics(AWSElement, albName, cloudWatch, elbv2, costExplorer, apiGateway)
+                return getMetrics(AWSElement, lbName, cloudWatch, elb, elbv2, costExplorer, apiGateway)
                   .then((results) => {
                     let metrics_combined = [];
                     results.forEach((metrics) => {

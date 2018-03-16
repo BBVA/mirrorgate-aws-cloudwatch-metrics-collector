@@ -55,7 +55,21 @@ function _addAPIGatewayDimension(_metric, APIName){
   return metric;
 }
 
-function _addDimensions(_metric, loadBalancer, targetGroup){
+function _addElbDimensions(_metric, loadBalancer){
+
+  let metric = Object.assign({}, _metric);
+
+  metric.Dimensions =  [];
+
+  metric.Dimensions.push({
+    "Name": "LoadBalancerName",
+    "Value": loadBalancer
+  });
+
+  return metric;
+}
+
+function _addElbv2Dimensions(_metric, loadBalancer, targetGroup){
 
   let metric = Object.assign({}, _metric);
 
@@ -76,12 +90,22 @@ function _addDimensions(_metric, loadBalancer, targetGroup){
   return metric;
 }
 
-function _createInput(cloudWatch, ALBName, targetGroups){
+function _createElbInput(cloudWatch, ELBName){
+  let metricInputs = [];
+
+  Metrics.getElbMetrics().forEach((metric) => {
+    metricInputs.push(cloudWatch.getMetricStatistics(_addElbDimensions(metric, ELBName)).promise());
+  });
+
+  return metricInputs;
+}
+
+function _createElbv2Input(cloudWatch, ALBName, targetGroups){
   let metricInputs = [];
 
   targetGroups.forEach((tg) => {
-    Metrics.getMetrics().forEach((metric) => {
-      metricInputs.push(cloudWatch.getMetricStatistics(_addDimensions(metric, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`)).promise());
+    Metrics.getElbv2Metrics().forEach((metric) => {
+      metricInputs.push(cloudWatch.getMetricStatistics(_addElbv2Dimensions(metric, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`)).promise());
     });
   });
 
@@ -137,6 +161,32 @@ module.exports = {
     });
   },
 
+  buildLBPromise: (elb, lbName, cloudWatch) => {
+    elbArray = [];
+
+    return elb.describeLoadBalancers({
+      LoadBalancerNames: [
+        lbName
+      ]
+    })
+    .promise()
+    .then( (data) => {
+      data.LoadBalancerDescriptions.forEach((lb) => {
+        elbArray.push(Promise.all(_createElbInput(
+                cloudWatch,
+                lb.LoadBalancerName
+              )
+        ));
+      });
+      return Promise.all(elbArray);
+    })
+    .catch(function(err){
+      if(err.code !== "LoadBalancerNotFound"){ // We dont stop the execution if the load balancer is not found (because we dont know if it is an ELB or ALB)
+        console.error(err);
+      }      
+    });
+  },
+
   buildElbv2Promise: (elbv2, albName, cloudWatch) => {
     elbv2Array = [];
 
@@ -154,7 +204,7 @@ module.exports = {
                 })
             .promise()
             .then( (data) => {
-              return Promise.all(_createInput(
+              return Promise.all(_createElbv2Input(
                 cloudWatch,
                 lb.LoadBalancerArn.split('loadbalancer/')[1],
                 data.TargetGroups
@@ -164,6 +214,11 @@ module.exports = {
           );
       });
       return Promise.all(elbv2Array);
+    })
+    .catch(function(err){
+      if(err.code !== "LoadBalancerNotFound"){ // We dont stop the execution if the load balancer is not found (because we dont know if it is an ELB or ALB)
+        console.error(err);
+      }      
     });
   },
 
