@@ -2,14 +2,14 @@
 
 ![MirrorGate](media/images/logo-mirrorgate.png)
 
-This Node application connects to Amazon Cloudwatch and retrieves metrics about the number of requests, the number of healthy checks, 4XX and 5XX errors occurred in an ALB
+This Node application connects to Amazon Cloudwatch and retrieves metrics about the number of requests, the number of healthy checks, 4XX and 5XX errors occurred in a Load Balancer (Classic or Application LB).
 
 
 # Configuring
 
 Check [config.js](./src/config/config.js) file to check for configuration options.
 
-The Cloudwatch Metrics Collector works with the assumption that both the endpoint to recover the ALBs that need
+The Cloudwatch Metrics Collector works with the assumption that both the endpoint to recover the LBs that need
 to be queried and the endpoint to send the results are configured as environment variables.
 ```
 MIRRORGATE_POST_ANALYTICS_ENDPOINT
@@ -25,7 +25,7 @@ mirrorgateGetAnalyticViewsEndpoint = 'http://localhost:8080/mirrorgate/api/user-
 The collector will filter the results and will only take the ones that come with the AWS/ prefix. The expected info from the GET endpoint
 should follow this pattern:
 ```
-AWS/{AWS_Account}/{ALB_name}
+AWS/{AWS_Account}/{LB_name}
 ```
 
 ## AWS roles and policies needed
@@ -97,7 +97,7 @@ aws sts assume-role --profile {local_profile} --role-arn arn:aws:iam::{Destinati
 Then run `local.js` with npm
 
 ```sh
-  nmp run local
+  npm run local
 ```
 
 or with npm
