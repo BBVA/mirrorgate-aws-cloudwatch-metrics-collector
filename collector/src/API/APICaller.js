@@ -116,7 +116,7 @@ function _createResponse(responses, viewId){
 
   let totalErrors = 0;
   let totalRequests = 0;
-  let totalPositivieHealthyChecks = 0;
+  let totalPositiveHealthyChecks = 0;
   let totalZeroHealthyChecks = 0;
   let responseTimeSampleCount = 0;
   let responseTimeAccumulated = 0;
@@ -166,7 +166,7 @@ function _createResponse(responses, viewId){
     }
 
     if(elem.Label === 'HealthyHostCount' && elem.Datapoints && elem.Datapoints.length !== 0) {
-      elem.Datapoints.forEach(data => data.Sum > 0 ? totalPositivieHealthyChecks++ : totalZeroHealthyChecks++);
+      elem.Datapoints.forEach(data => data.Sum > 0 ? totalPositiveHealthyChecks++ : totalZeroHealthyChecks++);
       totalHealthyChecksDate = new Date(elem.Datapoints[0].Timestamp).getTime();
       return;
     }
@@ -196,7 +196,7 @@ function _createResponse(responses, viewId){
     collectorId: config.get('COLLECTOR_ID')
   }
 
-  let availabilityRate = parseFloat((totalPositivieHealthyChecks * 100/(totalPositivieHealthyChecks + totalZeroHealthyChecks)).toFixed(2));
+  let availabilityRate = parseFloat((totalPositiveHealthyChecks * 100/(totalPositiveHealthyChecks + totalZeroHealthyChecks)).toFixed(2));
   let responseTime = responseTimeSampleCount ? parseFloat(responseTimeAccumulated/responseTimeSampleCount).toFixed(2) : undefined;
 
   metrics = [
