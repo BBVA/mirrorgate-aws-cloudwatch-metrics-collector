@@ -22,10 +22,10 @@ config.argv()
   .env()
   .file(path.resolve(__dirname, '../../config/config.json'));
 
-function _checkCostDaily(AWSElement){
+function _checkCostDaily(account){
   return new Promise((resolve, reject) => {
     APICaller.getCollectorMetrics().then((metrics) => {
-      let infrastructureCostMetrics = metrics.filter((metric) => metric.name.localeCompare("infrastructureCost") === 0 && metric.viewId.localeCompare(AWSElement) === 0);
+      let infrastructureCostMetrics = metrics.filter((metric) => metric.name.localeCompare("infrastructureCost") === 0 && metric.viewId.localeCompare(account) === 0);
 
       if (infrastructureCostMetrics.length != 0){
         infrastructureCostMetrics.forEach((metric) => {
@@ -90,35 +90,58 @@ function _addElbv2Dimensions(_metric, loadBalancer, targetGroup){
   return metric;
 }
 
-function _createElbInput(cloudWatch, ELBName){
+function _createElbInput(account, cloudWatch, ELBName){
   let metricInputs = [];
 
   Metrics.getElbMetrics().forEach((metric) => {
-    metricInputs.push(cloudWatch.getMetricStatistics(_addElbDimensions(metric, ELBName)).promise());
+    metricInputs.push(
+      cloudWatch.getMetricStatistics(_addElbDimensions(metric, ELBName))
+      .promise()
+      .then((data) => {
+        data['ViewId'] = `${account}/elb/${ELBName}`;
+        data['Type'] = 'elb';
+        return data;
+      })
+    );
   });
 
   return metricInputs;
 }
 
-function _createElbv2Input(cloudWatch, ALBName, targetGroups){
+function _createElbv2Input(account, cloudWatch, ALBName, targetGroups){
   let metricInputs = [];
 
   targetGroups.forEach((tg) => {
     Metrics.getElbv2Metrics().forEach((metric) => {
-      metricInputs.push(cloudWatch.getMetricStatistics(_addElbv2Dimensions(metric, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`)).promise());
+      metricInputs.push(
+        cloudWatch.getMetricStatistics(_addElbv2Dimensions(metric, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`))
+          .promise()
+          .then((data) => {
+            data['ViewId'] = `${account}/alb/${ALBName.split('app/')[1].split('/')[0]}/${tg.TargetGroupArn.split('targetgroup/')[1].split('/')[0]}`;
+            data['Type'] = 'alb';
+            return data;
+          })
+        );
     });
   });
 
   return metricInputs;
 }
 
-function _createAPIGatewayInput(cloudWatch, APIDescriptions){
+function _createAPIGatewayInput(account, cloudWatch, APIDescriptions){
   let metricInputs = [];
 
-  if(APIDescriptions.items){
-    APIDescriptions.items.forEach((description) =>{
+  if(APIDescriptions){
+    APIDescriptions.forEach((description) =>{
       Metrics.getGatewayMetrics().forEach((metric) => {
-        metricInputs.push(cloudWatch.getMetricStatistics(_addAPIGatewayDimension(metric, description.name)).promise());
+        metricInputs.push(
+          cloudWatch.getMetricStatistics(_addAPIGatewayDimension(metric, description.name)).promise()
+          .then((data) => {
+            data['ViewId'] = account + '/apigateway/' + description.name;
+            data['Type'] = 'apigateway';
+            return data;
+          })
+        );
       });
     });
   }
@@ -139,8 +162,8 @@ function _formatDate(date) {
 }
 
 module.exports = {
-  buildCostExplorerPromise: (AWSElement, costExplorer) => {
-    return _checkCostDaily(AWSElement).then((checkCost) => {
+  buildCostExplorerPromise: (account, costExplorer) => {
+    return _checkCostDaily(account).then((checkCost) => {
       if(checkCost){
         return costExplorer.getCostAndUsage({
             Granularity: 'MONTHLY',
@@ -150,10 +173,12 @@ module.exports = {
             },
             Metrics: ['BlendedCost']
           }).promise()
-            .then( (data) => {
+            .then((data) => {
               return [{
                 Label: 'InfrastructureCost',
-                Value: data
+                Value: data,
+                ViewId: account,
+                Type: 'billing'
               }];
             })
             .catch( err => console.error(`Error getting infrastructure cost from Amazon: ${err}`));
@@ -161,18 +186,19 @@ module.exports = {
     });
   },
 
-  buildLBPromise: (elb, lbName, cloudWatch) => {
+  buildLBPromise: (account, cloudWatch, elb, elbName) => {
     elbArray = [];
 
     return elb.describeLoadBalancers({
       LoadBalancerNames: [
-        lbName
+        elbName
       ]
     })
     .promise()
     .then( (data) => {
       data.LoadBalancerDescriptions.forEach((lb) => {
         elbArray.push(Promise.all(_createElbInput(
+                account,
                 cloudWatch,
                 lb.LoadBalancerName
               )
@@ -187,7 +213,7 @@ module.exports = {
     });
   },
 
-  buildElbv2Promise: (elbv2, albName, cloudWatch) => {
+  buildElbv2Promise: (account, cloudWatch, elbv2, albName) => {
     elbv2Array = [];
 
     return elbv2.describeLoadBalancers({
@@ -205,12 +231,13 @@ module.exports = {
             .promise()
             .then( (data) => {
               return Promise.all(_createElbv2Input(
+                account,
                 cloudWatch,
                 lb.LoadBalancerArn.split('loadbalancer/')[1],
                 data.TargetGroups
               ));
             })
-            .catch( err => console.error(`Error getting metrics from ELB: ${err}`))
+            .catch( err => console.error(`Error getting metrics from ALB: ${err}`))
           );
       });
       return Promise.all(elbv2Array);
@@ -222,11 +249,18 @@ module.exports = {
     });
   },
 
-  buildAPIGatewayPromise: (cloudwatch, apiGateway) => {
+  buildAPIGatewayPromise: (account, cloudWatch, apiGateway, apiName) => {
     return apiGateway.getRestApis({})
       .promise()
       .then((APIDescriptions) => {
-        return Promise.all(_createAPIGatewayInput(cloudwatch, APIDescriptions));
+        if(apiName){
+          APIDescriptions = APIDescriptions.items.filter(function(restApi){
+            return restApi.name === apiName;
+          });
+        }else{
+          APIDescriptions = APIDescriptions.items;
+        }
+        return Promise.all(_createAPIGatewayInput(account, cloudWatch, APIDescriptions));
       }).catch(err => console.error(`Error getting metrics fro APIGateway: ${err}`));
   },
 
