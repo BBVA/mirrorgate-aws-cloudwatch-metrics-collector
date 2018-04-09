@@ -41,24 +41,24 @@ function isAWSElement(listElement){
   return listElement.includes(config.get('COLLECTOR_PREFIX'));
 }
 
-function getMetrics(account, rscType, rscName, cloudWatch, elb, elbv2, costExplorer, apiGateway) {
+function getMetrics(account, resourceType, resourceName, cloudWatch, elb, elbv2, costExplorer, apiGateway) {
   let promises = [];
 
-  switch(rscType) {
+  switch(resourceType) {
     case 'elb':
-      promises.push(PromisesBuilder.buildLBPromise(account, cloudWatch, elb, rscName));
+      promises.push(PromisesBuilder.buildLBPromise(account, cloudWatch, elb, resourceName));
       break;
     case 'alb':
-      promises.push(PromisesBuilder.buildElbv2Promise(account, cloudWatch, elbv2, rscName));
+      promises.push(PromisesBuilder.buildElbv2Promise(account, cloudWatch, elbv2, resourceName));
       break;
     case 'apigateway':
-      promises.push(PromisesBuilder.buildAPIGatewayPromise(account, cloudWatch, apiGateway, rscName));
+      promises.push(PromisesBuilder.buildAPIGatewayPromise(account, cloudWatch, apiGateway, resourceName));
       break;
     default:
       promises.push(PromisesBuilder.buildCostExplorerPromise(account, costExplorer));
-      promises.push(PromisesBuilder.buildLBPromise(account, cloudWatch, elb, rscName));
-      promises.push(PromisesBuilder.buildElbv2Promise(account, cloudWatch, elbv2, rscName));
-      promises.push(PromisesBuilder.buildAPIGatewayPromise(account, cloudWatch, apiGateway, rscName));
+      promises.push(PromisesBuilder.buildLBPromise(account, cloudWatch, elb, resourceName));
+      promises.push(PromisesBuilder.buildElbv2Promise(account, cloudWatch, elbv2, resourceName));
+      promises.push(PromisesBuilder.buildAPIGatewayPromise(account, cloudWatch, apiGateway, resourceName));
       break;
   }
   
@@ -78,8 +78,8 @@ module.exports = {
             let withoutPrefix = AWSElement.trim().replace(config.get('COLLECTOR_PREFIX'), '').split('/');
             let account = config.get('COLLECTOR_PREFIX') + withoutPrefix[0];
             let accountId = withoutPrefix[0];
-            let rscType = withoutPrefix.length > 1 ? withoutPrefix[1] : undefined;
-            let rscName = withoutPrefix.length > 1 ? withoutPrefix[2] : undefined;
+            let resourceType = withoutPrefix.length > 1 ? withoutPrefix[1] : undefined;
+            let resourceName = withoutPrefix.length > 1 ? withoutPrefix[2] : undefined;
 
             assumeAWSRole(accountId)
               .then((element) => {
@@ -125,7 +125,7 @@ module.exports = {
                   }
                 });
 
-                return getMetrics(account, rscType, rscName, cloudWatch, elb, elbv2, costExplorer, apiGateway)
+                return getMetrics(account, resourceType, resourceName, cloudWatch, elb, elbv2, costExplorer, apiGateway)
                   .then((results) => {
                     let metrics_combined = [];
                     results.forEach((metrics) => {
@@ -145,9 +145,9 @@ module.exports = {
                       }, {})
                     ));
                   
-                    groupedMetrics.forEach((rsc) => {
+                    groupedMetrics.forEach((resource) => {
                       APICaller
-                        .sendResultsToMirrorgate(rsc)
+                        .sendResultsToMirrorgate(resource)
                         .then( result => console.log(`Elements sent to MirrorGate: ${JSON.stringify(result, null, '  ')}\n`))
                         .catch( err => console.error(`Error sending metrics to MirrorGate: ${JSON.stringify(err, null, '  ')}`));
                     });

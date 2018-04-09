@@ -79,7 +79,7 @@ module.exports = {
     });
   },
 
-  sendResultsToMirrorgate: (rsc) => {
+  sendResultsToMirrorgate: (resource) => {
 
     let auth = new Buffer(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
 
@@ -90,7 +90,7 @@ module.exports = {
             'content-type': 'application/json',
             'Authorization' : `Basic ${auth}`
           },
-          body: JSON.stringify(_createResponse(rsc))
+          body: JSON.stringify(_createResponse(resource))
         },
         (err, res, body) => {
           if (err) {
@@ -110,7 +110,7 @@ module.exports = {
   }
 };
 
-function _createResponse(rsc){
+function _createResponse(resource){
 
   let metrics = [];
 
@@ -129,7 +129,7 @@ function _createResponse(rsc){
   let responseTimeDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let infrastructureCostDate = new Date(new Date().getTime() - 120 * 1000).getTime();
 
-  rsc.forEach((metric) => {
+  resource.forEach((metric) => {
 
     if(metric.Label === 'HTTPCode_ELB_4XX' ||
        metric.Label === 'HTTPCode_ELB_5XX' ||
@@ -191,7 +191,7 @@ function _createResponse(rsc){
   });
 
   let template = {
-    viewId: rsc[0].ViewId,
+    viewId: resource[0].ViewId,
     platform: 'AWS',
     collectorId: config.get('COLLECTOR_ID')
   }
@@ -199,7 +199,7 @@ function _createResponse(rsc){
   let availabilityRate;
   let responseTime;
 
-  switch(rsc[0].Type){
+  switch(resource[0].Type){
     case 'elb':
     case 'alb':
       availabilityRate = parseFloat((totalPositiveHealthyChecks * 100/(totalPositiveHealthyChecks + totalZeroHealthyChecks)).toFixed(2));
