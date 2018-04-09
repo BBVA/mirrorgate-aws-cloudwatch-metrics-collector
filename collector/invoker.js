@@ -144,13 +144,10 @@ module.exports = {
                         return metricsArray;
                       }, {})
                     ));
-                  
-                    groupedMetrics.forEach((resource) => {
-                      APICaller
-                        .sendResultsToMirrorgate(resource)
-                        .then( result => console.log(`Elements sent to MirrorGate: ${JSON.stringify(result, null, '  ')}\n`))
-                        .catch( err => console.error(`Error sending metrics to MirrorGate: ${JSON.stringify(err, null, '  ')}`));
-                    });
+
+                    APICaller.sendResultsToMirrorgate(groupedMetrics)
+                      .then( result => console.log(`Elements sent to MirrorGate: ${JSON.stringify(result, null, '  ')}\n`))
+                      .catch( err => console.error(`Error sending metrics to MirrorGate: ${JSON.stringify(err, null, '  ')}`));
 
                   });
               })

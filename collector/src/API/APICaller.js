@@ -79,7 +79,15 @@ module.exports = {
     });
   },
 
-  sendResultsToMirrorgate: (resource) => {
+  sendResultsToMirrorgate: (groupedMetrics) => {
+
+    response = []
+
+    groupedMetrics.forEach((resource) => {
+      _createResponse(resource).forEach((metric) => {
+        response.push(metric);
+      });
+    });
 
     let auth = new Buffer(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
 
@@ -90,7 +98,7 @@ module.exports = {
             'content-type': 'application/json',
             'Authorization' : `Basic ${auth}`
           },
-          body: JSON.stringify(_createResponse(resource))
+          body: JSON.stringify(response)
         },
         (err, res, body) => {
           if (err) {
