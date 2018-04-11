@@ -37,7 +37,7 @@ function _checkCostDaily(account){
       }
     })
     .catch( err => {
-      console.error(`Error getting collector metrics: ${err}`);
+      console.error(`Error getting collector metrics: ${JSON.stringify(err, null, '  ')}`);
     });
   });
 }
