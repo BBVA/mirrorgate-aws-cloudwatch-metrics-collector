@@ -41,14 +41,27 @@ function isAWSElement(listElement){
   return listElement.includes(config.get('COLLECTOR_PREFIX'));
 }
 
-function getMetrics(AWSElement, lbName, cloudWatch, elb, elbv2, costExplorer, apiGateway) {
+function getMetrics(account, resourceType, resourceName, cloudWatch, elb, elbv2, costExplorer, apiGateway) {
   let promises = [];
 
-  promises.push(PromisesBuilder.buildCostExplorerPromise(AWSElement, costExplorer));
-  promises.push(PromisesBuilder.buildLBPromise(elb, lbName, cloudWatch));
-  promises.push(PromisesBuilder.buildElbv2Promise(elbv2, lbName, cloudWatch));
-  promises.push(PromisesBuilder.buildAPIGatewayPromise(cloudWatch, apiGateway));
-
+  switch(resourceType) {
+    case 'elb':
+      promises.push(PromisesBuilder.buildLBPromise(account, cloudWatch, elb, resourceName));
+      break;
+    case 'alb':
+      promises.push(PromisesBuilder.buildElbv2Promise(account, cloudWatch, elbv2, resourceName));
+      break;
+    case 'apigateway':
+      promises.push(PromisesBuilder.buildAPIGatewayPromise(account, cloudWatch, apiGateway, resourceName));
+      break;
+    default:
+      promises.push(PromisesBuilder.buildCostExplorerPromise(account, costExplorer));
+      promises.push(PromisesBuilder.buildLBPromise(account, cloudWatch, elb, resourceName));
+      promises.push(PromisesBuilder.buildElbv2Promise(account, cloudWatch, elbv2, resourceName));
+      promises.push(PromisesBuilder.buildAPIGatewayPromise(account, cloudWatch, apiGateway, resourceName));
+      break;
+  }
+  
   return Promise.all(promises);
 }
 
@@ -60,12 +73,13 @@ module.exports = {
       .then((analyticsList) => {
         analyticsList
           .filter(isAWSElement)
-          .forEach( AWSElement => {
+          .forEach(AWSElement => {
 
-            //Get account id and ALB name if this exists
-            let cleanLB = AWSElement.trim().replace(config.get('COLLECTOR_PREFIX'), '');
-            let accountId = cleanLB.split('/')[0];
-            let lbName = cleanLB.split('/')[1];
+            let withoutPrefix = AWSElement.trim().replace(config.get('COLLECTOR_PREFIX'), '').split('/');
+            let account = config.get('COLLECTOR_PREFIX') + withoutPrefix[0];
+            let accountId = withoutPrefix[0];
+            let resourceType = withoutPrefix.length > 1 ? withoutPrefix[1] : undefined;
+            let resourceName = withoutPrefix.length > 1 ? withoutPrefix[2] : undefined;
 
             assumeAWSRole(accountId)
               .then((element) => {
@@ -111,7 +125,7 @@ module.exports = {
                   }
                 });
 
-                return getMetrics(AWSElement, lbName, cloudWatch, elb, elbv2, costExplorer, apiGateway)
+                return getMetrics(account, resourceType, resourceName, cloudWatch, elb, elbv2, costExplorer, apiGateway)
                   .then((results) => {
                     let metrics_combined = [];
                     results.forEach((metrics) => {
@@ -124,10 +138,17 @@ module.exports = {
                       });
                     });
 
-                    APICaller
-                      .sendResultsToMirrorgate(metrics_combined, AWSElement)
-                      .then( result => console.log(`Elements sent to MirrorGate: ${JSON.stringify(result, null, '  ')}`))
+                    let groupedMetrics = new Map(Object.entries(
+                      metrics_combined.reduce(function(metricsArray, metric) {
+                        (metricsArray[metric['ViewId']] = metricsArray[metric['ViewId']] || []).push(metric);
+                        return metricsArray;
+                      }, {})
+                    ));
+
+                    APICaller.sendResultsToMirrorgate(groupedMetrics)
+                      .then( result => console.log(`Elements sent to MirrorGate: ${JSON.stringify(result, null, '  ')}\n`))
                       .catch( err => console.error(`Error sending metrics to MirrorGate: ${JSON.stringify(err, null, '  ')}`));
+
                   });
               })
               .catch( err => console.error(`Error getting metrics from Amazon: ${err}`));
