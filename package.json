@@ -9,11 +9,11 @@
   "author": "Rodrigo Quintana <rodrigo.quintana.contractor@bbva.com>",
   "license": "",
   "devDependencies": {
-    "gulp": "^3.9.1",
-    "gulp-zip": "^4.0.0"
+    "gulp": "^4.0.0",
+    "gulp-zip": "^4.2.0"
   },
   "dependencies": {
-    "aws-sdk": "^2.184.0",
-    "nconf": "^0.8.5"
+    "aws-sdk": "^2.387.0",
+    "nconf": "^0.10.0"
   }
 }
