@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "",
   "scripts": {
-    "local": "node ./collector/local.js",
+    "start": "node ./collector/local.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "BBVA",
@@ -17,7 +17,7 @@
     "gulp-zip": "^4.2.0"
   },
   "dependencies": {
-    "aws-sdk": "^2.387.0",
+    "aws-sdk": "^2.395.0",
     "nconf": "^0.10.0"
   }
 }

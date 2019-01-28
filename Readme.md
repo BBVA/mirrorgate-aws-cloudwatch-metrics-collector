@@ -97,7 +97,7 @@ aws sts assume-role --profile {local_profile} --role-arn arn:aws:iam::{Destinati
 Then run `local.js` with npm
 
 ```sh
-  npm run local
+  npm start
 ```
 
 or with npm
