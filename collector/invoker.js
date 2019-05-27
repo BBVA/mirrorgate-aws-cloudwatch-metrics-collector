@@ -41,28 +41,17 @@ function isAWSElement(listElement){
   return listElement.includes(config.get('COLLECTOR_PREFIX'));
 }
 
-function getMetrics(account, resourceType, resourceName, cloudWatch, elb, elbv2, costExplorer, apiGateway) {
-  let promises = [];
+function unique(value, index, self) {
+  return self.indexOf(value) === index;
+}
 
-  switch(resourceType) {
-    case 'elb':
-      promises.push(PromisesBuilder.buildLBPromise(account, cloudWatch, elb, resourceName));
-      break;
-    case 'alb':
-      promises.push(PromisesBuilder.buildElbv2Promise(account, cloudWatch, elbv2, resourceName));
-      break;
-    case 'apigateway':
-      promises.push(PromisesBuilder.buildAPIGatewayPromise(account, cloudWatch, apiGateway, resourceName));
-      break;
-    default:
-      promises.push(PromisesBuilder.buildCostExplorerPromise(account, costExplorer));
-      promises.push(PromisesBuilder.buildLBPromise(account, cloudWatch, elb, resourceName));
-      promises.push(PromisesBuilder.buildElbv2Promise(account, cloudWatch, elbv2, resourceName));
-      promises.push(PromisesBuilder.buildAPIGatewayPromise(account, cloudWatch, apiGateway, resourceName));
-      break;
-  }
-  
-  return Promise.all(promises);
+function getMetrics(account, cloudWatch, elb, elbv2, costExplorer, apiGateway) {
+  return Promise.all([
+    PromisesBuilder.buildCostExplorerPromise(account, costExplorer),
+    PromisesBuilder.buildELBPromise(account, cloudWatch, elb),
+    PromisesBuilder.buildELBv2Promise(account, cloudWatch, elbv2),
+    PromisesBuilder.buildAPIGatewayPromise(account, cloudWatch, apiGateway)
+  ]);
 }
 
 module.exports = {
@@ -71,88 +60,92 @@ module.exports = {
     return APICaller
       .getAWSAnalyticsList()
       .then((analyticsList) => {
+
+        accountsIds = [];
+
         analyticsList
           .filter(isAWSElement)
           .forEach(AWSElement => {
-
             let withoutPrefix = AWSElement.trim().replace(config.get('COLLECTOR_PREFIX'), '').split('/');
-            let account = config.get('COLLECTOR_PREFIX') + withoutPrefix[0];
             let accountId = withoutPrefix[0];
-            let resourceType = withoutPrefix.length > 1 ? withoutPrefix[1] : undefined;
-            let resourceName = withoutPrefix.length > 1 ? withoutPrefix[2] : undefined;
+            accountsIds.push(accountId);
+          });
 
+        accountsIds
+          .filter(unique)
+          .forEach(accountId => {
             assumeAWSRole(accountId)
-              .then((element) => {
+            .then((element) => {
+              let account = config.get('COLLECTOR_PREFIX') + accountId;
 
-                let cloudWatch = new AWS.CloudWatch({
-                  credentials: {
-                    accessKeyId: element.Credentials.AccessKeyId,
-                    secretAccessKey: element.Credentials.SecretAccessKey,
-                    sessionToken: element.Credentials.SessionToken,
-                  }
-                });
+              let cloudWatch = new AWS.CloudWatch({
+                credentials: {
+                  accessKeyId: element.Credentials.AccessKeyId,
+                  secretAccessKey: element.Credentials.SecretAccessKey,
+                  sessionToken: element.Credentials.SessionToken,
+                }
+              });
 
-                let elb = new AWS.ELB({
-                  credentials: {
-                    accessKeyId: element.Credentials.AccessKeyId,
-                    secretAccessKey: element.Credentials.SecretAccessKey,
-                    sessionToken: element.Credentials.SessionToken
-                  }
-                });
+              let elb = new AWS.ELB({
+                credentials: {
+                  accessKeyId: element.Credentials.AccessKeyId,
+                  secretAccessKey: element.Credentials.SecretAccessKey,
+                  sessionToken: element.Credentials.SessionToken
+                }
+              });
 
-                let elbv2 = new AWS.ELBv2({
-                  credentials: {
-                    accessKeyId: element.Credentials.AccessKeyId,
-                    secretAccessKey: element.Credentials.SecretAccessKey,
-                    sessionToken: element.Credentials.SessionToken
-                  }
-                });
+              let elbv2 = new AWS.ELBv2({
+                credentials: {
+                  accessKeyId: element.Credentials.AccessKeyId,
+                  secretAccessKey: element.Credentials.SecretAccessKey,
+                  sessionToken: element.Credentials.SessionToken
+                }
+              });
 
-                let costExplorer = new AWS.CostExplorer({
-                  region: 'us-east-1', // Only available in region us-east-1 yet
-                  credentials: {
-                    accessKeyId: element.Credentials.AccessKeyId,
-                    secretAccessKey: element.Credentials.SecretAccessKey,
-                    sessionToken: element.Credentials.SessionToken,
-                  }
-                });
+              let costExplorer = new AWS.CostExplorer({
+                region: 'us-east-1', // Only available in region us-east-1 yet
+                credentials: {
+                  accessKeyId: element.Credentials.AccessKeyId,
+                  secretAccessKey: element.Credentials.SecretAccessKey,
+                  sessionToken: element.Credentials.SessionToken,
+                }
+              });
 
-                let apiGateway = new AWS.APIGateway({
-                  credentials: {
-                    accessKeyId: element.Credentials.AccessKeyId,
-                    secretAccessKey: element.Credentials.SecretAccessKey,
-                    sessionToken: element.Credentials.SessionToken,
-                  }
-                });
+              let apiGateway = new AWS.APIGateway({
+                credentials: {
+                  accessKeyId: element.Credentials.AccessKeyId,
+                  secretAccessKey: element.Credentials.SecretAccessKey,
+                  sessionToken: element.Credentials.SessionToken,
+                }
+              });
 
-                return getMetrics(account, resourceType, resourceName, cloudWatch, elb, elbv2, costExplorer, apiGateway)
-                  .then((results) => {
-                    let metrics_combined = [];
-                    results.forEach((metrics) => {
-                      metrics && metrics.forEach((metric) => {
-                        if(Array.isArray(metric)){
-                          metrics_combined.push(...metric);
-                        } else {
-                          metrics_combined.push(metric);
-                        }
-                      });
+              return getMetrics(account, cloudWatch, elb, elbv2, costExplorer, apiGateway)
+                .then((results) => {
+                  let metrics_combined = [];
+                  results.forEach((metrics) => {
+                    metrics && metrics.forEach((metric) => {
+                      if(Array.isArray(metric)){
+                        metrics_combined.push(...metric);
+                      } else {
+                        metrics_combined.push(metric);
+                      }
                     });
-
-                    let groupedMetrics = new Map(Object.entries(
-                      metrics_combined.reduce(function(metricsArray, metric) {
-                        (metricsArray[metric['ViewId']] = metricsArray[metric['ViewId']] || []).push(metric);
-                        return metricsArray;
-                      }, {})
-                    ));
-
-                    APICaller.sendResultsToMirrorgate(groupedMetrics)
-                      .then( result => console.log(`Elements sent to MirrorGate: ${JSON.stringify(result, null, '  ')}\n`))
-                      .catch( err => console.error(`Error sending metrics to MirrorGate: ${JSON.stringify(err, null, '  ')}`));
-
                   });
-              })
-              .catch( err => console.error(`Error getting metrics from Amazon: ${err}`));
 
+                  let groupedMetrics = new Map(Object.entries(
+                    metrics_combined.reduce(function(metricsArray, metric) {
+                      (metricsArray[metric.ViewId] = metricsArray[metric.ViewId] || []).push(metric);
+                      return metricsArray;
+                    }, {})
+                  ));
+
+                  APICaller.sendResultsToMirrorgate(groupedMetrics)
+                    .then( result => console.log(`Elements sent to MirrorGate: ${JSON.stringify(result, null, '  ')}\n`))
+                    .catch( err => console.error(`Error sending metrics to MirrorGate: ${JSON.stringify(err, null, '  ')}`));
+
+                });
+            })
+            .catch( err => console.error(`Error getting metrics from Amazon: ${err}`));
           });
       })
       .catch( err => console.error(`Error getting analytics list from MirrorGate: ${JSON.stringify(err, null, '  ')}`));

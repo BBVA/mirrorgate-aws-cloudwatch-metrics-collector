@@ -98,8 +98,8 @@ function _createElbInput(account, cloudWatch, ELBName){
       cloudWatch.getMetricStatistics(_addElbDimensions(metric, ELBName))
       .promise()
       .then((data) => {
-        data['ViewId'] = `${account}/elb/${ELBName}`;
-        data['Type'] = 'elb';
+        data.ViewId = `${account}/elb/${ELBName}`;
+        data.Type = 'elb';
         return data;
       })
     );
@@ -117,8 +117,8 @@ function _createElbv2Input(account, cloudWatch, ALBName, targetGroups){
         cloudWatch.getMetricStatistics(_addElbv2Dimensions(metric, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`))
           .promise()
           .then((data) => {
-            data['ViewId'] = `${account}/alb/${ALBName.split('app/')[1].split('/')[0]}/${tg.TargetGroupArn.split('targetgroup/')[1].split('/')[0]}`;
-            data['Type'] = 'alb';
+            data.ViewId = `${account}/alb/${ALBName.split('app/')[1].split('/')[0]}/${tg.TargetGroupArn.split('targetgroup/')[1].split('/')[0]}`;
+            data.Type = 'alb';
             return data;
           })
         );
@@ -137,8 +137,8 @@ function _createAPIGatewayInput(account, cloudWatch, APIDescriptions){
         metricInputs.push(
           cloudWatch.getMetricStatistics(_addAPIGatewayDimension(metric, description.name)).promise()
           .then((data) => {
-            data['ViewId'] = account + '/apigateway/' + description.name;
-            data['Type'] = 'apigateway';
+            data.ViewId = account + '/apigateway/' + description.name;
+            data.Type = 'apigateway';
             return data;
           })
         );
@@ -186,7 +186,7 @@ module.exports = {
     });
   },
 
-  buildLBPromise: (account, cloudWatch, elb, elbName) => {
+  buildELBPromise: (account, cloudWatch, elb, elbName) => {
     elbArray = [];
 
     return elb.describeLoadBalancers({
@@ -207,19 +207,17 @@ module.exports = {
       return Promise.all(elbArray);
     })
     .catch(function(err){
-      if(err.code !== "LoadBalancerNotFound"){ // We dont stop the execution if the load balancer is not found (because we dont know if it is an ELB or ALB)
+      if(err.code !== "LoadBalancerNotFound"){ // We don't stop the execution if the load balancer is not found (because we don't know if it is an ELB or ALB)
         console.error(err);
-      }      
+      }
     });
   },
 
-  buildElbv2Promise: (account, cloudWatch, elbv2, albName) => {
+  buildELBv2Promise: (account, cloudWatch, elbv2) => {
     elbv2Array = [];
 
     return elbv2.describeLoadBalancers({
-      Names: [
-         albName
-      ]
+      Names: []
     })
     .promise()
     .then( (data) => {
@@ -243,9 +241,9 @@ module.exports = {
       return Promise.all(elbv2Array);
     })
     .catch(function(err){
-      if(err.code !== "LoadBalancerNotFound"){ // We dont stop the execution if the load balancer is not found (because we dont know if it is an ELB or ALB)
+      if(err.code !== "LoadBalancerNotFound"){ // We don't stop the execution if the load balancer is not found (because we don't know if it is an ELB or ALB)
         console.error(err);
-      }      
+      }
     });
   },
 
