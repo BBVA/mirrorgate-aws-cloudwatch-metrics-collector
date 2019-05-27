@@ -140,12 +140,12 @@ module.exports = {
                   ));
 
                   APICaller.sendResultsToMirrorgate(groupedMetrics)
-                    .then( result => console.log(`Elements sent to MirrorGate: ${JSON.stringify(result, null, '  ')}\n`))
+                    .then( result => console.log(`Elements sent to MirrorGate from AWS account ${accountId}: ${JSON.stringify(result, null, '  ')}\n`))
                     .catch( err => console.error(`Error sending metrics to MirrorGate: ${JSON.stringify(err, null, '  ')}`));
 
                 });
             })
-            .catch( err => console.error(`Error getting metrics from Amazon account ${accountId}: ${err}`));
+            .catch( err => console.error(`Error getting metrics from AWS account ${accountId}: ${err}`));
           });
       })
       .catch( err => console.error(`Error getting analytics list from MirrorGate: ${JSON.stringify(err, null, '  ')}`));
