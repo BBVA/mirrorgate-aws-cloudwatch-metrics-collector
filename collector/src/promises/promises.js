@@ -56,7 +56,6 @@ function _addAPIGatewayDimension(_metric, APIName){
 }
 
 function _addElbDimensions(_metric, loadBalancer){
-
   let metric = Object.assign({}, _metric);
 
   metric.Dimensions =  [];
@@ -187,7 +186,7 @@ module.exports = {
   },
 
   buildELBPromise: (account, cloudWatch, elb, elbName) => {
-    elbArray = [];
+    let elbArray = [];
 
     return elb.describeLoadBalancers({
       LoadBalancerNames: [
@@ -214,7 +213,7 @@ module.exports = {
   },
 
   buildELBv2Promise: (account, cloudWatch, elbv2) => {
-    elbv2Array = [];
+    let elbv2Array = [];
 
     return elbv2.describeLoadBalancers({
       Names: []
