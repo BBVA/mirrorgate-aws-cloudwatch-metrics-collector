@@ -145,7 +145,7 @@ module.exports = {
 
                 });
             })
-            .catch( err => console.error(`Error getting metrics from Amazon: ${err}`));
+            .catch( err => console.error(`Error getting metrics from Amazon account ${accountId}: ${err}`));
           });
       })
       .catch( err => console.error(`Error getting analytics list from MirrorGate: ${JSON.stringify(err, null, '  ')}`));
