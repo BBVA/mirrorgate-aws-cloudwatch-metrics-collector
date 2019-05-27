@@ -15,12 +15,12 @@ node ('global') {
                 npm install
                 cd collector
                 npm install --production
-            """       
+            """
         }
-        
+
         stage('Package Zip') {
              sh """
-                \$(npm bin)/gulp package
+                npm run package
             """
         }
 
