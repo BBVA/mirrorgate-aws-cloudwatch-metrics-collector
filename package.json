@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "",
   "scripts": {
+    "package": "./node_modules/.bin/gulp package",
     "start": "node ./collector/local.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -13,11 +14,11 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "gulp": "^4.0.0",
+    "gulp": "^4.0.2",
     "gulp-zip": "^4.2.0"
   },
   "dependencies": {
-    "aws-sdk": "^2.397.0",
+    "aws-sdk": "^2.460.0",
     "nconf": "^0.10.0"
   }
 }
