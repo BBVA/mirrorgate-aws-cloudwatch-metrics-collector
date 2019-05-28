@@ -37,7 +37,7 @@ function _checkCostDaily(account){
       }
     })
     .catch( err => {
-      console.error(`Error getting collector metrics: ${JSON.stringify(err, null, '  ')}`);
+      console.error(`Error getting collector metrics from AWS Account ${account}: ${JSON.stringify(err, null, '  ')}`);
     });
   });
 }
@@ -116,7 +116,7 @@ function _createElbv2Input(account, cloudWatch, ALBName, targetGroups){
         cloudWatch.getMetricStatistics(_addElbv2Dimensions(metric, ALBName, `targetgroup/${tg.TargetGroupArn.split('targetgroup/')[1]}`))
           .promise()
           .then((data) => {
-            data.ViewId = `${account}/alb/${ALBName.split('app/')[1].split('/')[0]}/${tg.TargetGroupArn.split('targetgroup/')[1].split('/')[0]}`;
+            data.ViewId = `${account}/alb/${ALBName.split('/')[1]}/${tg.TargetGroupArn.split('targetgroup/')[1].split('/')[0]}`;
             data.Type = 'alb';
             return data;
           })
@@ -180,7 +180,7 @@ module.exports = {
                 Type: 'billing'
               }];
             })
-            .catch( err => console.error(`Error getting infrastructure cost from Amazon: ${err}`));
+            .catch( err => console.error(`Error getting infrastructure cost from AWS Account ${account}: ${err}`));
       }
     });
   },
@@ -234,7 +234,7 @@ module.exports = {
                 data.TargetGroups
               ));
             })
-            .catch( err => console.error(`Error getting metrics from ALB: ${err}`))
+            .catch( err => console.error(`Error getting ALB metrics from AWS account ${account}: ${err}`))
           );
       });
       return Promise.all(elbv2Array);
@@ -258,7 +258,7 @@ module.exports = {
           APIDescriptions = APIDescriptions.items;
         }
         return Promise.all(_createAPIGatewayInput(account, cloudWatch, APIDescriptions));
-      }).catch(err => console.error(`Error getting metrics fro APIGateway: ${err}`));
+      }).catch(err => console.error(`Error getting APIGateway metrics from AWS account ${account}: ${err}`));
   },
 
 };
