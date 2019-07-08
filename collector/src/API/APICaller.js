@@ -81,7 +81,7 @@ module.exports = {
 
   sendResultsToMirrorgate: (groupedMetrics) => {
 
-    response = []
+    response = [];
 
     groupedMetrics.forEach((resource) => {
       _createResponse(resource).forEach((metric) => {
@@ -122,7 +122,8 @@ function _createResponse(resource){
 
   let metrics = [];
 
-  let totalErrors = 0;
+  let total4XXErrors = 0;
+  let total5XXErrors = 0;
   let totalRequests = 0;
   let totalPositiveHealthyChecks = 0;
   let totalZeroHealthyChecks = 0;
@@ -130,8 +131,9 @@ function _createResponse(resource){
   let responseTimeAccumulated = 0;
   let infrastructureCost = 0;
 
-  //Cloudwatch returns data with two minutes delay, so we adjust to that
-  let totalErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
+  // CloudWatch returns data with two minutes delay, so we adjust to that
+  let total4XXErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
+  let total5XXErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let totalRequestsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let totalHealthyChecksDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let responseTimeDate = new Date(new Date().getTime() - 120 * 1000).getTime();
@@ -139,26 +141,38 @@ function _createResponse(resource){
 
   resource.forEach((metric) => {
 
-    if(metric.Label === 'HTTPCode_ELB_4XX' ||
-       metric.Label === 'HTTPCode_ELB_5XX' ||
-       metric.Label === 'HTTPCode_Backend_4XX' ||
-       metric.Label === 'HTTPCode_Backend_5XX' ||
-       metric.Label === 'HTTPCode_ELB_4XX_Count' ||
-       metric.Label === 'HTTPCode_ELB_5XX_Count' ||
-       metric.Label === 'HTTPCode_Target_5XX_Count' ||
-       metric.Label === 'HTTPCode_Target_4XX_Count' ||
-       metric.Label === '4XXError' ||
-       metric.Label === '5XXError'){
+    if(metric.Label === 'HTTPCode_ELB_5XX' ||
+      metric.Label === 'HTTPCode_Backend_5XX' ||
+      metric.Label === 'HTTPCode_ELB_5XX_Count' ||
+      metric.Label === 'HTTPCode_Target_5XX_Count' ||
+      metric.Label === '5XXError'){
 
-        if(metric.Datapoints && metric.Datapoints.length !== 0){
-          metric.Datapoints.forEach((data) => {
-            totalErrors += data.Sum;
-            if(data.Timestamp !== null ){
-              totalErrorsDate = new Date(data.Timestamp).getTime();
-            }
-          });
-        }
-        return;
+      if(metric.Datapoints && metric.Datapoints.length !== 0){
+        metric.Datapoints.forEach((data) => {
+          total5XXErrors += data.Sum;
+          if(data.Timestamp !== null ){
+            total5XXErrorsDate = new Date(data.Timestamp).getTime();
+          }
+        });
+      }
+      return;
+    }
+
+    if(metric.Label === 'HTTPCode_ELB_4XX' ||
+      metric.Label === 'HTTPCode_Backend_4XX' ||
+      metric.Label === 'HTTPCode_ELB_4XX_Count' ||
+      metric.Label === 'HTTPCode_Target_4XX_Count' ||
+      metric.Label === '4XXError'){
+
+      if(metric.Datapoints && metric.Datapoints.length !== 0){
+        metric.Datapoints.forEach((data) => {
+          total4XXErrors += data.Sum;
+          if(data.Timestamp !== null ){
+            total4XXErrorsDate = new Date(data.Timestamp).getTime();
+          }
+        });
+      }
+      return;
     }
 
     if((metric.Label === 'RequestCount' || metric.Label === 'Count')
@@ -213,7 +227,8 @@ function _createResponse(resource){
       availabilityRate = parseFloat((totalPositiveHealthyChecks * 100/(totalPositiveHealthyChecks + totalZeroHealthyChecks)).toFixed(2));
       responseTime = responseTimeSampleCount ? parseFloat(responseTimeAccumulated/responseTimeSampleCount).toFixed(2) : undefined;
       metrics.push(
-        { name: 'errorsNumber', value: totalErrors, timestamp: totalErrorsDate },
+        { name: 'errors5XXNumber', value: total5XXErrors, timestamp: total5XXErrorsDate },
+        { name: 'errors4XXNumber', value: total4XXErrors, timestamp: total4XXErrorsDate },
         { name: 'requestsNumber', value: totalRequests, timestamp: totalRequestsDate },
         { name: 'availabilityRate', value: availabilityRate, timestamp: totalHealthyChecksDate },
         { name: 'responseTime', value: responseTime, timestamp: responseTimeDate, sampleSize: totalRequests }
@@ -222,7 +237,8 @@ function _createResponse(resource){
     case 'apigateway':
       responseTime = responseTimeSampleCount ? parseFloat(responseTimeAccumulated/responseTimeSampleCount).toFixed(2) : undefined;
       metrics.push(
-        { name: 'errorsNumber', value: totalErrors, timestamp: totalErrorsDate },
+        { name: 'errors5XXNumber', value: total5XXErrors, timestamp: total5XXErrorsDate },
+        { name: 'errors4XXNumber', value: total4XXErrors, timestamp: total4XXErrorsDate },
         { name: 'requestsNumber', value: totalRequests, timestamp: totalRequestsDate },
         { name: 'responseTime', value: responseTime, timestamp: responseTimeDate, sampleSize: totalRequests }
       );
