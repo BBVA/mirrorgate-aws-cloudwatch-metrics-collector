@@ -122,24 +122,45 @@ function _createResponse(resource){
 
   let metrics = [];
 
+  let totalErrors = 0;
   let total4XXErrors = 0;
   let total5XXErrors = 0;
   let totalRequests = 0;
+  let totalInvocations = 0;
   let totalPositiveHealthyChecks = 0;
   let totalZeroHealthyChecks = 0;
   let responseTimeSampleCount = 0;
   let responseTimeAccumulated = 0;
+  let durationSampleCount = 0;
+  let durationAccumulated = 0;
   let infrastructureCost = 0;
 
   // CloudWatch returns data with two minutes delay, so we adjust to that
+  let totalErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let total4XXErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let total5XXErrorsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let totalRequestsDate = new Date(new Date().getTime() - 120 * 1000).getTime();
+  let totalInvocationDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let totalHealthyChecksDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let responseTimeDate = new Date(new Date().getTime() - 120 * 1000).getTime();
+  let durationDate = new Date(new Date().getTime() - 120 * 1000).getTime();
   let infrastructureCostDate = new Date(new Date().getTime() - 120 * 1000).getTime();
 
   resource.forEach((metric) => {
+
+    if(metric.Label === 'Errors'){
+
+      if(metric.Datapoints && metric.Datapoints.length !== 0){
+        metric.Datapoints.forEach((data) => {
+          totalErrors += data.Sum;
+          if(data.Timestamp !== null ){
+            totalErrorsDate = new Date(data.Timestamp).getTime();
+          }
+        });
+      }
+      return;
+    }
+
 
     if(metric.Label === 'HTTPCode_ELB_5XX' ||
       metric.Label === 'HTTPCode_Backend_5XX' ||
@@ -175,12 +196,22 @@ function _createResponse(resource){
       return;
     }
 
-    if((metric.Label === 'RequestCount' || metric.Label === 'Count')
-        && metric.Datapoints && metric.Datapoints.length !== 0){
+    if((metric.Label === 'RequestCount' || metric.Label === 'Count') &&
+        metric.Datapoints && metric.Datapoints.length !== 0){
       metric.Datapoints.forEach((data) => {
         totalRequests += data.Sum;
         if(data.Timestamp !== null ){
           totalRequestsDate = new Date(data.Timestamp).getTime();
+        }
+      });
+      return;
+    }
+
+    if(metric.Label === 'Invocations' && metric.Datapoints && metric.Datapoints.length !== 0){
+      metric.Datapoints.forEach((data) => {
+        totalInvocations += data.Sum;
+        if(data.Timestamp !== null ){
+          totalInvocationDate = new Date(data.Timestamp).getTime();
         }
       });
       return;
@@ -204,6 +235,18 @@ function _createResponse(resource){
       return;
     }
 
+    if(metric.Label === 'Duration' && metric.Datapoints && metric.Datapoints.length !== 0){
+      metric.Datapoints.forEach((data) => {
+        if (!data.SampleCount) {
+          return;
+        }
+        durationSampleCount += data.SampleCount;
+        data.Unit === 'Milliseconds' ? durationAccumulated += (data.Sum / 1000) : durationAccumulated += data.Sum;
+      });
+      durationDate = new Date(metric.Datapoints[0].Timestamp).getTime();
+      return;
+    }
+
     if(metric.Label === 'InfrastructureCost'){
       metric.Value.ResultsByTime && metric.Value.ResultsByTime.forEach((data) => {
         infrastructureCost += parseFloat(data.Total.BlendedCost.Amount);
@@ -216,14 +259,14 @@ function _createResponse(resource){
     viewId: resource[0].ViewId,
     platform: 'AWS',
     collectorId: config.get('COLLECTOR_ID')
-  }
+  };
 
   let availabilityRate;
   let responseTime;
+  let duration;
 
   switch(resource[0].Type){
-    case 'elb':
-    case 'alb':
+    case 'elb', 'alb':
       availabilityRate = parseFloat((totalPositiveHealthyChecks * 100/(totalPositiveHealthyChecks + totalZeroHealthyChecks)).toFixed(2));
       responseTime = responseTimeSampleCount ? parseFloat(responseTimeAccumulated/responseTimeSampleCount).toFixed(2) : undefined;
       metrics.push(
@@ -243,6 +286,14 @@ function _createResponse(resource){
         { name: 'responseTime', value: responseTime, timestamp: responseTimeDate, sampleSize: totalRequests }
       );
       break;
+    case 'lambda' :
+        duration = durationSampleCount ? parseFloat(durationAccumulated/durationSampleCount).toFixed(2) : undefined;
+        metrics.push(
+          { name: 'errors', value: totalErrors, timestamp: totalErrorsDate },
+          { name: 'invocations', value: totalInvocations, timestamp: totalInvocationDate },
+          { name: 'duration', value: duration, timestamp: durationDate, sampleSize: totalInvocations }
+        );
+        break;
     case 'billing':
       metrics.push({ name: 'infrastructureCost', value: infrastructureCost, timestamp: infrastructureCostDate });
       break;
