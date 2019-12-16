@@ -10,11 +10,9 @@ node ('global') {
             checkout(scm)
         }
 
-        stage('Build') {
+        stage('Install') {
             sh """
                 npm install
-                cd collector
-                npm install --production
             """
         }
 
@@ -25,7 +23,7 @@ node ('global') {
         }
 
         stage('Publish on Jenkins') {
-      	    step([$class: "ArtifactArchiver", artifacts: "build/${AWS_CLOUDWATCH_COLLECTOR_ARTIFACT}", fingerprint: true])
+      	    step([$class: "ArtifactArchiver", artifacts: ".serverless/${AWS_CLOUDWATCH_COLLECTOR_ARTIFACT}", fingerprint: true])
         }
 
     } catch(Exception e) {

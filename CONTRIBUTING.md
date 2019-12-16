@@ -150,7 +150,7 @@ If the commit reverts a previous commit, it should begin with `revert: `, follow
 ### Type
 Must be one of the following:
 
-* **build**: Changes that affect the build system or external dependencies (example scopes: gradlew, gulp, ...)
+* **build**: Changes that affect the build system or external dependencies (example scopes: gradlew, serverless, ...)
 * **ci**: Changes to our CI configuration files and scripts (example scopes: Travis, Jenkinsfile)
 * **docs**: Documentation only changes
 * **feat**: A new feature

@@ -110,13 +110,7 @@ or with npm
 
 ## Running in Amazon Lambda
 
-First package script zip with the following gulp task
-
-```sh
-./node_modules/gulp/bin/gulp.js package
-```
-
-or with npm
+First package script zip with the following npm command
 
 ```sh
 npm run package
