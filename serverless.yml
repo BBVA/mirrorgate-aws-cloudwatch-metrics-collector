@@ -1,0 +1,24 @@
+service: mirrorgate-aws-cloudwatch-metrics-collector
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+
+package:
+  individually: true
+  include:
+    - config/**
+    - src/**
+  exclude:
+    - media/**
+    - .gitignore
+    - ./**.md
+    - ./**.json
+    - ./**.yaml
+    - LICENSE
+    - Jenkinsfile
+    - .vscode/**
+
+functions:
+  mirrorgate-aws-cloudwatch-metrics-collector:
+    handler: lambda.handler

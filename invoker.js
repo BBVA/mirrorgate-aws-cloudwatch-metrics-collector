@@ -45,12 +45,13 @@ function unique(value, index, self) {
   return self.indexOf(value) === index;
 }
 
-function getMetrics(account, cloudWatch, elb, elbv2, costExplorer, apiGateway) {
+function getMetrics(account, cloudWatch, elb, elbv2, costExplorer, apiGateway, lambda) {
   return Promise.all([
     PromisesBuilder.buildCostExplorerPromise(account, costExplorer),
     PromisesBuilder.buildELBPromise(account, cloudWatch, elb),
     PromisesBuilder.buildELBv2Promise(account, cloudWatch, elbv2),
-    PromisesBuilder.buildAPIGatewayPromise(account, cloudWatch, apiGateway)
+    PromisesBuilder.buildAPIGatewayPromise(account, cloudWatch, apiGateway),
+    PromisesBuilder.buildLambdaPromise(account, cloudWatch, lambda)
   ]);
 }
 
@@ -119,7 +120,15 @@ module.exports = {
                 }
               });
 
-              return getMetrics(account, cloudWatch, elb, elbv2, costExplorer, apiGateway)
+              let lambda = new AWS.Lambda({
+                credentials: {
+                  accessKeyId: element.Credentials.AccessKeyId,
+                  secretAccessKey: element.Credentials.SecretAccessKey,
+                  sessionToken: element.Credentials.SessionToken,
+                }
+              });
+
+              return getMetrics(account, cloudWatch, elb, elbv2, costExplorer, apiGateway, lambda)
                 .then((results) => {
                   let metrics_combined = [];
                   results.forEach((metrics) => {

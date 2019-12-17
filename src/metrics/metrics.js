@@ -40,7 +40,13 @@ const gatewayMetrics = [
   {MetricName: '4XXError', Namespace: 'AWS/ApiGateway'},
   {MetricName: '5XXError', Namespace: 'AWS/ApiGateway'},
   {MetricName: 'Count', Namespace: 'AWS/ApiGateway'},
-  {MetricName: 'Latency', Namespace: 'AWS/ApiGateway', Statistics:['Sum', 'SampleCount']},  
+  {MetricName: 'Latency', Namespace: 'AWS/ApiGateway', Statistics:['Sum', 'SampleCount']},
+];
+
+const lambdaMetrics = [
+  {MetricName: 'Errors', Namespace: 'AWS/Lambda'},
+  {MetricName: 'Invocations', Namespace: 'AWS/Lambda'},
+  {MetricName: 'Duration', Namespace: 'AWS/Lambda', Statistics:['Sum', 'SampleCount']}
 ];
 
 exports.getElbMetrics = function () {
@@ -53,4 +59,8 @@ exports.getElbv2Metrics = function () {
 
 exports.getGatewayMetrics = function () {
   return gatewayMetrics.map((m) => Object.assign({}, getTemplate(), m));
+};
+
+exports.getLambdaMetrics = function () {
+  return lambdaMetrics.map((m) => Object.assign({}, getTemplate(), m));
 };
