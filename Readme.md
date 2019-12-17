@@ -96,16 +96,10 @@ in your local machine with the following command:
 aws sts assume-role --profile {local_profile} --role-arn arn:aws:iam::{Destination_AWS_account_number}:role/delegated-cloudwatch-metrics-role --role-session-name test_delegated
 ```
 
-Then run `local.js` with npm
+Then run `index.js` with npm
 
 ```sh
   npm start
-```
-
-or with npm
-
-```sh
-  npm run start
 ```
 
 ## Running in Amazon Lambda
