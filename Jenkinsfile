@@ -1,7 +1,5 @@
 #!groovy
 
-AWS_CLOUDWATCH_COLLECTOR_ARTIFACT = 'mirrorgate-aws-cloudwatch-metrics-collector.zip'
-
 node ('global') {
 
     try {
@@ -10,23 +8,26 @@ node ('global') {
             checkout(scm)
         }
 
-        stage('Install') {
+        stage('Build') {
             sh """
-                npm install
+                docker-compose -p \${BUILD_TAG} run -u \$(id -u) install
             """
         }
 
         stage('Package Zip') {
-             sh """
-                npm run package
+            sh """
+                docker-compose -p \${BUILD_TAG} run -u \$(id -u) package
             """
         }
 
         stage('Publish on Jenkins') {
-      	    step([$class: "ArtifactArchiver", artifacts: ".serverless/${AWS_CLOUDWATCH_COLLECTOR_ARTIFACT}", fingerprint: true])
+            step([$class: "ArtifactArchiver", artifacts: ".serverless/*.zip", fingerprint: true])
         }
 
-    } catch(Exception e) {
-        throw e;
+    } finally {
+        sh """
+            docker-compose -p \${BUILD_TAG} down --volumes
+        """
     }
+
 }
