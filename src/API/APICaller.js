@@ -27,7 +27,7 @@ module.exports = {
 
   getAWSAnalyticsList: () => {
 
-    let auth = new Buffer(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
+    let auth = Buffer.from(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
 
     return new Promise((resolve, reject)=>{
       request( {
@@ -54,7 +54,7 @@ module.exports = {
 
   getCollectorMetrics: () => {
 
-    let auth = new Buffer(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
+    let auth = Buffer.from(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
 
     return new Promise((resolve, reject)=>{
       request( {
@@ -89,7 +89,7 @@ module.exports = {
       });
     });
 
-    let auth = new Buffer(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
+    let auth = Buffer.from(config.get('MIRRORGATE_USER') + ':' + config.get('MIRRORGATE_PASSWORD')).toString('base64');
 
     return new Promise((resolve, reject)=>{
       request.post(`${config.get('MIRRORGATE_ENDPOINT')}/api/user-metrics`,
