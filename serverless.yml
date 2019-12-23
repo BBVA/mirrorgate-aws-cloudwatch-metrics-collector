@@ -9,6 +9,8 @@ package:
   include:
     - config/**
     - src/**
+    - index.js
+    - lambda.js
   exclude:
     - media/**
     - .gitignore

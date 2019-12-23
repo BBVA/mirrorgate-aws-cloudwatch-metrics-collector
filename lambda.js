@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-const CloudwatchInvoker = require('./invoker.js');
+const CloudWatchInvoker = require('./invoker.js');
 const AWS = require('aws-sdk');
 
 const config = require('nconf');
@@ -38,11 +38,11 @@ exports.handler = (event, context) => {
             data = JSON.parse(data.Body);
             config.set('MIRRORGATE_USER', data.MIRRORGATE_USER);
             config.set('MIRRORGATE_PASSWORD', data.MIRRORGATE_PASSWORD);
-            CloudwatchInvoker.cloudWatchInvoker();
+            CloudWatchInvoker.cloudWatchInvoker();
           })
           .catch( err => console.error(`Error: ${JSON.stringify(err)}`));
     } else {
-        CloudwatchInvoker.cloudWatchInvoker();
+        CloudWatchInvoker.cloudWatchInvoker();
     }
 
 };

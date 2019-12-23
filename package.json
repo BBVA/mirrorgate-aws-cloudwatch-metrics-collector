@@ -1,10 +1,11 @@
 {
   "name": "mirrorgate-aws-cloudwatch-metrics-collector",
   "version": "0.0.1",
-  "description": "",
+  "description": "MirrorGate collector form AWS CloudWatch metrics",
+  "main": "index.js",
   "scripts": {
     "package": "serverless package",
-    "start": "node ./index.js",
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "BBVA",
@@ -14,10 +15,10 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "serverless": "1.59.3"
+    "serverless": "1.60.1"
   },
   "dependencies": {
-    "aws-sdk": "2.590.0",
+    "aws-sdk": "2.594.0",
     "nconf": "0.10.0",
     "request": "2.88.0"
   }
