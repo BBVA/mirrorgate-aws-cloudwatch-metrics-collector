@@ -24,7 +24,7 @@ config.argv()
   .env()
   .file(path.resolve(__dirname, 'config/config.json'));
 
-exports.handler = (event, context) => {
+exports.handler = (event, context, callback) => {
 
     context.callbackWaitsForEmptyEventLoop = false;
 
@@ -40,9 +40,10 @@ exports.handler = (event, context) => {
             config.set('MIRRORGATE_PASSWORD', data.MIRRORGATE_PASSWORD);
             CloudWatchInvoker.cloudWatchInvoker();
           })
-          .catch( err => console.error(`Error: ${JSON.stringify(err)}`));
+          .catch( err => callback(new Error(`Error: ${JSON.stringify(err)}`)));
     } else {
-        CloudWatchInvoker.cloudWatchInvoker();
+        CloudWatchInvoker.cloudWatchInvoker()
+          .catch( err => callback(new Error(`Error: ${JSON.stringify(err)}`)));
     }
 
 };
