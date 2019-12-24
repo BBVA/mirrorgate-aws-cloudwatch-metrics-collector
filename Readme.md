@@ -1,8 +1,8 @@
-# MirrorGate Cloudwatch Metrics Collector
+# MirrorGate CloudWatch Metrics Collector
 
 ![MirrorGate](media/images/logo-mirrorgate.png)
 
-This Node application connects to Amazon Cloudwatch and retrieves metrics about the number of requests, the number of healthy checks, 4XX and 5XX errors occurred in a Load Balancer (Classic or Application LB).
+This Node application connects to Amazon CloudWatch and retrieves metrics about the number of requests, the number of healthy checks, 4XX and 5XX errors occurred in a Load Balancer (Classic or Application LB).
 
 ## Configuring
 
@@ -11,7 +11,7 @@ Check [config.js](./src/config/config.js) file to check for configuration option
 The CloudWatch Metrics Collector works with the assumption that MirrorGate endpoint is configured as environment variable.
 
 ```text
-MIRRORGATE_ENDPOINT
+  MIRRORGATE_ENDPOINT
 ```
 
 If not, default endpoint defined in properties will be used.
@@ -20,7 +20,7 @@ The collector will filter the results and will only take the ones that come with
 should follow this pattern:
 
 ```text
-AWS/{AWS_Account}/{LB_name}
+  AWS/{AWS_Account}/{LB_name}
 ```
 
 ## AWS roles and policies needed
@@ -64,7 +64,8 @@ and a policy that allows that role to access the following resources
                 "cloudwatch:getMetricStatistics",
                 "elasticloadbalancing:DescribeLoadBalancers",
                 "ce:GetCostAndUsage",
-                "elasticloadbalancing:DescribeTargetGroups"
+                "elasticloadbalancing:DescribeTargetGroups",
+                "lambda:ListFunctions"
             ],
             "Resource": [
                 "*"
@@ -75,7 +76,7 @@ and a policy that allows that role to access the following resources
 ```
 
 Note that the permissions can be fine grained to allow only queries to the methods and resources employed.
-This allows the user or role used for running the code to impersonate a user in the receiving account and perform the queries to Cloudwatch.
+This allows the user or role used for running the code to impersonate a user in the receiving account and perform the queries to CloudWatch.
 
 - _{AWS_Account}_ : Refers to the Amazon account number from where the code is being executed.
 - _{role}_: Refers to the Amazon role used by the code collector code.
@@ -86,14 +87,14 @@ This allows the user or role used for running the code to impersonate a user in 
 First install dependencies
 
 ```sh
-  npm i
+  npm install
 ```
 
 You need to install AWS CLI and configure it with your user. Then you can assume _delegated-cloudwatch-metrics-role_
 in your local machine with the following command:
 
 ```sh
-aws sts assume-role --profile {local_profile} --role-arn arn:aws:iam::{Destination_AWS_account_number}:role/delegated-cloudwatch-metrics-role --role-session-name test_delegated
+  aws sts assume-role --profile {local_profile} --role-arn arn:aws:iam::{Destination_AWS_account_number}:role/delegated-cloudwatch-metrics-role --role-session-name test_delegated
 ```
 
 Then run `index.js` with npm
@@ -107,7 +108,7 @@ Then run `index.js` with npm
 First package script zip with the following npm command
 
 ```sh
-npm run package
+  npm run package
 ```
 
 Create a lambda with runtime Node.js 6.10 or grater and following handler `lambda.handler`. Note it will execute only once, so you will have to use a timed trigger to execute it eventually.
