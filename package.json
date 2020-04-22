@@ -15,11 +15,11 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "serverless": "1.60.1"
+    "serverless": "1.67.3"
   },
   "dependencies": {
-    "aws-sdk": "2.594.0",
+    "aws-sdk": "2.660.0",
     "nconf": "0.10.0",
-    "request": "2.88.0"
+    "request": "2.88.2"
   }
 }
